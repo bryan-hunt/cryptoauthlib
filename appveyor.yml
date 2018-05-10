@@ -13,6 +13,7 @@ environment:
     - PYTHON: "C:\\Python36-x64"
 
 install:
+    - cmd: "%PYTHON%\\python.exe -m pip --upgrade pip"
     - cmd: "%PYTHON%\\python.exe -m pip install wheel"
     - cmd: "%PYTHON%\\python.exe -m pip install pytest"
     - cmd: "%PYTHON%\\python.exe -m pip install twine"
@@ -43,4 +44,4 @@ artifacts:
 #  See Appveyor's documentation for more details. Or you can simply
 #  access your wheels from the Appveyor "artifacts" tab for your build.
 deploy_script:
-    - ps: if ($env:APPVEYOR_REPO_TAG -eq $TRUE) { twine upload --repository-url https://test.pypi.org/legacy/ "dist\*.whl" }
+    - ps: if ($env:APPVEYOR_REPO_TAG -eq $TRUE) { ${env:PYTHON}\scripts\twine.exe upload --repository-url https://test.pypi.org/legacy/ "dist\*.whl" }
