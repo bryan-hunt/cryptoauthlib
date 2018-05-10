@@ -14,6 +14,7 @@ environment:
 
 install:
     - cmd: "%PYTHON%\\python.exe -m pip install --upgrade pip"
+    - cmd: "%PYTHON%\\python.exe -m pip install --upgrade setuptools"
     - cmd: "%PYTHON%\\python.exe -m pip install --upgrade wheel"
     - cmd: "%PYTHON%\\python.exe -m pip install --upgrade pytest"
     - cmd: "%PYTHON%\\python.exe -m pip install --upgrade twine"
