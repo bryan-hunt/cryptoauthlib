@@ -28,12 +28,12 @@ after_build:
     - cmd: "%PYTHON%\\python.exe setup.py install"
 
 test_script:
-    - cmd: "%PYTHON%\\scripts\\pytest.exe --junitxml=python\\build\\results.xml"
+    - ps: |
+      & ${env:PYTHON}\scripts\pytest.exe --junitxml=python\build\results.xml
+      $testsExitCode = $lastexitcode
+      $wc = New-Object 'System.Net.WebClient'
+      $wc.UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\python\build\results.xml))
     
-after_test:
-    - ps: $wc = New-Object 'System.Net.WebClient'
-          $wc.UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\python\build\results.xml))
-
 artifacts:
     - path: python\dist\*.whl
 
