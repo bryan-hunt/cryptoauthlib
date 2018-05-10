@@ -98,12 +98,12 @@ class CryptoAuthCommandBuildExt(build_ext):
         devnull = open(os.devnull, 'r+b')
 
         # Configure the library
-        subprocess.check_call(['cmake', cmakelist_path] + cmake_args, cwd=self.build_temp, shell=True)
-#            stdin=devnull, stdout=devnull, stderr=devnull, shell=False)
+        subprocess.check_call(['cmake', cmakelist_path] + cmake_args, cwd=self.build_temp,
+            stdin=devnull, stdout=devnull, stderr=devnull, shell=False)
 
         # Build the library
-        subprocess.check_call(['cmake', '--build', '.'] + build_args, cwd=self.build_temp, shell=True)
-#            stdin=devnull, stdout=devnull, stderr=devnull, shell=False)
+        subprocess.check_call(['cmake', '--build', '.'] + build_args, cwd=self.build_temp,
+            stdin=devnull, stdout=devnull, stderr=devnull, shell=False)
 
 
 class BinaryDistribution(Distribution):
