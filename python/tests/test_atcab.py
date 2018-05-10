@@ -1,5 +1,5 @@
 from cryptoauthlib import *
-from .cryptoauthlib_mock import atcab_mock
+from cryptoauthlib_mock import atcab_mock
 import pytest
 import binascii
 
