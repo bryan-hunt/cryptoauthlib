@@ -13,10 +13,10 @@ environment:
     - PYTHON: "C:\\Python36-x64"
 
 install:
-    - cmd: "%PYTHON%\\python.exe -m pip --upgrade pip"
-    - cmd: "%PYTHON%\\python.exe -m pip install wheel"
-    - cmd: "%PYTHON%\\python.exe -m pip install pytest"
-    - cmd: "%PYTHON%\\python.exe -m pip install twine"
+    - cmd: "%PYTHON%\\python.exe -m pip install --upgrade pip"
+    - cmd: "%PYTHON%\\python.exe -m pip install --upgrade wheel"
+    - cmd: "%PYTHON%\\python.exe -m pip install --upgrade pytest"
+    - cmd: "%PYTHON%\\python.exe -m pip install --upgrade twine"
 
 before_build:
     - cd python
