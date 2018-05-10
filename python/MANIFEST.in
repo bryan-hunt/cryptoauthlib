@@ -1,0 +1,5 @@
+recursive-include ../lib *.c *.h CMakeLists.txt
+recursive-include ../third_party *.c *.h
+recursive-include lib *.c *.h CMakeLists.txt
+recursive-include third_party *.c *.h
+include MANIFEST.in setup.py setup.cfg README.md VERSION

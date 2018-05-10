@@ -34,7 +34,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#ifdef ATCAPRINTF
 
 /* Ruleset:
     Index   -   Meaning
@@ -157,11 +156,6 @@ ATCA_STATUS atcab_hex2bin(const char* ascii_hex, int ascii_hex_len, uint8_t* bin
     free(packed_hex);
     return ATCA_SUCCESS;
 }
-
-//#else
-
-
-#endif
 
 /**
  * \brief Checks to see if a character is an ASCII representation of a digit ((c ge '0') and (c le '9'))

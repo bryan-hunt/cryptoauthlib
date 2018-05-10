@@ -1,0 +1,41 @@
+environment:
+  TWINE_USERNAME:
+    secure: TEiy+eHGeQQIy9jUEpUNMA==
+  TWINE_PASSWORD:
+    secure: nGYP/oqo/DSfCQduEhhKGg==
+
+  matrix:
+    fast_finish: true
+    - PYTHON: "C:\\Python27"
+    - PYTHON: "C:\\Python27-x64"
+    - PYTHON: "C:\\Python35"
+    - PYTHON: "C:\\Python35-x64"
+    - PYTHON: "C:\\Python36"
+    - PYTHON: "C:\\Python36-x64"
+
+install:
+    - %PYTHON%\\python.exe -m pip install wheel
+    - %PYTHON%\\python.exe -m pip install pytest
+    - %PYTHON%\\python.exe -m pip install twine
+
+before_build:
+    - cd python
+    - git describe >VERSION
+
+build:
+    - %PYTHON%\\python.exe setup.py install
+
+test_script:
+    - %PYTHON%\\scripts\\pytest.exe
+
+artifacts:
+    # setup.py install runs the bdist_wheel first
+    - path: dist\*.whl
+      name: wheel
+
+#on_success:
+#  You can use this step to upload your artifacts to a public website.
+#  See Appveyor's documentation for more details. Or you can simply
+#  access your wheels from the Appveyor "artifacts" tab for your build.
+deploy_script:
+  - ps: if ($env:APPVEYOR_REPO_TAG -eq $TRUE) { twine upload --repository-url https://test.pypi.org/legacy/ dist\*.whl }

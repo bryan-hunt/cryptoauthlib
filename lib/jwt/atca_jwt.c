@@ -35,6 +35,8 @@
 #include "jwt/atca_jwt.h"
 #include <stdio.h>
 
+#include <stdio.h>
+
 /** \brief The only supported JWT format for this library */
 static const char g_jwt_header[] = "{\"alg\":\"ES256\",\"typ\":\"JWT\"}";
 
