@@ -22,6 +22,7 @@ before_build:
     - cmd: "git describe --tags >VERSION"
 
 build_script:
+    - cmd: "%PYTHON%\\python.exe setup.py bdist_wheel"
     - cmd: "%PYTHON%\\python.exe setup.py install"
 
 test_script:
