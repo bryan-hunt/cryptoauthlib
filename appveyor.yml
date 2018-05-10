@@ -19,7 +19,7 @@ install:
 
 before_build:
     - cd python
-    - git describe >VERSION
+    - cmd: "@echo %APPVEYOR_REPO_TAG_NAME%>VERSION"
 
 build_script:
     - cmd: "%PYTHON%\\python.exe setup.py install"
