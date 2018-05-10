@@ -23,19 +23,19 @@ before_build:
 
 build_script:
     - cmd: "%PYTHON%\\python.exe setup.py bdist_wheel"
+
+after_build:
     - cmd: "%PYTHON%\\python.exe setup.py install"
 
 test_script:
     - cmd: "%PYTHON%\\scripts\\pytest.exe"
 
 artifacts:
-    # setup.py install runs the bdist_wheel first
-    - path: dist\*.whl
-      name: wheel
+    - path: python\dist\*.whl
 
 #on_success:
 #  You can use this step to upload your artifacts to a public website.
 #  See Appveyor's documentation for more details. Or you can simply
 #  access your wheels from the Appveyor "artifacts" tab for your build.
 deploy_script:
-    - ps: if ($env:APPVEYOR_REPO_TAG -eq $TRUE) { twine upload dist\*.whl }
+    - ps: if ($env:APPVEYOR_REPO_TAG -eq $TRUE) { twine upload python\dist\*.whl }
