@@ -44,4 +44,4 @@ artifacts:
 #  See Appveyor's documentation for more details. Or you can simply
 #  access your wheels from the Appveyor "artifacts" tab for your build.
 deploy_script:
-    - ps: if ($env:APPVEYOR_REPO_TAG -eq $TRUE) { $env:PYTHON\python.exe -m twine upload --repository-url https://test.pypi.org/legacy/ "dist\*.whl" }
+    - ps: if ($env:APPVEYOR_REPO_TAG -eq $TRUE) { $($env:PYTHON)\python.exe -m twine upload --repository-url https://test.pypi.org/legacy/ "dist\*.whl" }
