@@ -34,8 +34,16 @@ def load_cryptoauthlib(lib=None):
         except:
             raise LibraryLoadError("Unable to load cryptoauthlib")
 
+            
+def get_cryptoauthlib():
+    """
+    This is a helper function for the other python files in this module to use the loaded library
+    """
+    global _CRYPTO_LIB      # pylint: disable=global-statement
+    return _CRYPTO_LIB
 
-def atcab_init(phy=None):
+
+def atcab_init(iface_cfg):
     """
     Initialize the communication stack and initializes the ATCK590 kit
     Communication over USB HID and Kit Protocol by default
@@ -44,9 +52,7 @@ def atcab_init(phy=None):
     if _CRYPTO_LIB is None:
         load_cryptoauthlib(_CRYPTO_LIB)
 
-    if phy is None:
-        phy = _CRYPTO_LIB.cfg_ateccx08a_kithid_default
-    status = _CRYPTO_LIB.atcab_init(phy)
+    status = _CRYPTO_LIB.atcab_init(byref(iface_cfg))
     return status
 
 
