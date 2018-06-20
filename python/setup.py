@@ -38,7 +38,7 @@ if sys.platform is 'win32':
     _PACKAGE_DATA['libcryptoauth'] = ['cryptoauth.dll']
 #elif sys.platform is 'darwin':
 else:
-    _PACKAGE_DATA['libcryptoauth'] = ['libcryptoauth.so', 'libcryptoauth.txt']
+    _PACKAGE_DATA['libcryptoauth'] = ['libcryptoauth.so']
 
 # Check to see if this is being used with python 2.7 which requires some
 # backported features
@@ -83,13 +83,13 @@ class CryptoAuthCommandBuildExt(build_ext):
         if 'win32' == sys.platform:
             cmake_args += ['-DCMAKE_LIBRARY_OUTPUT_DIRECTORY_%s=' % cfg.upper() + extdir,
                           '-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_%s=' % cfg.upper() + extdir]
+            if sys.maxsize > 2**32:
+                cmake_args += ['-A', 'x64']
         else:
             cmake_args += ['-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + extdir]
 
-        if 'linux' == sys.platform:
+        if sys.platform.startswith('linux'):
             cmake_args += ['-DATCA_HAL_I2C=ON']
-        elif sys.maxsize > 2**32:
-            cmake_args += ['-A', 'x64']
 
         if not os.path.exists(self.build_temp):
             os.makedirs(self.build_temp)
@@ -105,8 +105,6 @@ class CryptoAuthCommandBuildExt(build_ext):
         subprocess.check_call(' '.join(['cmake', '--build', '.'] + build_args), cwd=os.path.abspath(self.build_temp), shell=True)
 #            stdin=devnull, stdout=devnull, stderr=devnull, shell=False)
 
-        with open(extdir + os.path.sep + 'libcryptoauth.txt', 'w') as f:
-            f.write(str(glob.glob(extdir + os.path.sep + '*')))
 
 class BinaryDistribution(Distribution):
     def has_ext_modules(self):
