@@ -5,6 +5,7 @@ from setuptools.extension import Extension
 import sys
 import subprocess
 import os
+import glob
 
 _NAME = 'cryptoauthlib'
 _DESCRIPTION = 'Python Wrapper Library for Microchip Security Products'
@@ -35,8 +36,9 @@ _PROJECT_URLS = {
 _PACKAGE_DATA = {}
 if sys.platform is 'win32':
     _PACKAGE_DATA['libcryptoauth'] = ['cryptoauth.dll']
-elif sys.platform is 'darwin':
-    _PACKAGE_DATA['libcryptoauth'] = ['libcryptoauth.so']
+#elif sys.platform is 'darwin':
+else:
+    _PACKAGE_DATA['libcryptoauth'] = ['libcryptoauth.so', 'libcryptoauth.txt']
 
 # Check to see if this is being used with python 2.7 which requires some
 # backported features
@@ -105,6 +107,8 @@ class CryptoAuthCommandBuildExt(build_ext):
         subprocess.check_call(['cmake', '--build', '.'] + build_args, cwd=self.build_temp, shell=True)
 #            stdin=devnull, stdout=devnull, stderr=devnull, shell=False)
 
+        with open(extdir + os.path.sep + 'libcryptoauth.txt', 'w') as f:
+            f.write(str(glob.glob(extdir + os.path.sep + '*')))
 
 class BinaryDistribution(Distribution):
     def has_ext_modules(self):
