@@ -22,6 +22,7 @@ script:
   - $PIP install cibuildwheel
   - export CIBW_SKIP='cp34-*'
   - export CIBW_BEFORE_BUILD_LINUX='yum install cmake -y'
+  - export CIBW_BUILD_VERBOSITY=3
   - cibuildwheel --output-dir wheelhouse
   - |
     if [[ $TRAVIS_TAG ]]; then

@@ -74,8 +74,7 @@ class CryptoAuthCommandBuildExt(build_ext):
             os.path.dirname(self.get_ext_fullpath(ext.name)) + os.path.sep + _NAME)
         setupdir = os.path.dirname(os.path.abspath(__file__))
 
-        cmakelist_path = os.path.relpath(setupdir + os.path.sep + 'lib' if _sdist_build else '../lib',
-                                         self.build_temp)
+        cmakelist_path = os.path.abspath(setupdir + os.path.sep + 'lib' if _sdist_build else '../lib')
 
         cfg = 'Debug' if self.debug else 'Release'
         build_args = ['--config', cfg]
@@ -89,8 +88,7 @@ class CryptoAuthCommandBuildExt(build_ext):
 
         if 'linux' == sys.platform:
             cmake_args += ['-DATCA_HAL_I2C=ON']
-
-        if sys.maxsize > 2**32:
+        elif sys.maxsize > 2**32:
             cmake_args += ['-A', 'x64']
 
         if not os.path.exists(self.build_temp):
@@ -100,11 +98,11 @@ class CryptoAuthCommandBuildExt(build_ext):
         devnull = open(os.devnull, 'r+b')
 
         # Configure the library
-        subprocess.check_call(['cmake', cmakelist_path] + cmake_args, cwd=self.build_temp, shell=True)
+        subprocess.check_call(' '.join(['cmake', cmakelist_path] + cmake_args), cwd=os.path.abspath(self.build_temp), shell=True)
 #            stdin=devnull, stdout=devnull, stderr=devnull, shell=False)
 
         # Build the library
-        subprocess.check_call(['cmake', '--build', '.'] + build_args, cwd=self.build_temp, shell=True)
+        subprocess.check_call(' '.join(['cmake', '--build', '.'] + build_args), cwd=os.path.abspath(self.build_temp), shell=True)
 #            stdin=devnull, stdout=devnull, stderr=devnull, shell=False)
 
         with open(extdir + os.path.sep + 'libcryptoauth.txt', 'w') as f:
