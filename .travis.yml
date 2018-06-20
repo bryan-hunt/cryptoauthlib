@@ -10,6 +10,7 @@ matrix:
         - PYTHON=python
     - os: osx
       language: generic
+      compiler: gcc
       env:
         - PIP=pip2
         - PYTHON=python2
