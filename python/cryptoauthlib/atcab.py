@@ -2,7 +2,6 @@
 Dynamic link library loading under ctypes and HAL initilization/release functions
 """
 import os.path
-import platform
 from ctypes import c_uint8, c_uint32, cdll, byref, create_string_buffer
 from .status import Status
 
@@ -27,10 +26,12 @@ def load_cryptoauthlib(lib=None):
     else:
         try:
             curr_path = os.path.abspath(os.path.dirname(__file__))
-            if platform.system() == 'Windows':
+            if os.path.exists(os.path.join(curr_path, "cryptoauth.dll")):
                 _CRYPTO_LIB = cdll.LoadLibrary(os.path.join(curr_path, "cryptoauth.dll"))
-            else:
+            elif os.path.exists(os.path.join(curr_path, "libcryptoauth.so")):
                 _CRYPTO_LIB = cdll.LoadLibrary(os.path.join(curr_path, "libcryptoauth.so"))
+            elif os.path.exists(os.path.join(curr_path, "libcryptoauth.dylib")):
+                _CRYPTO_LIB = cdll.LoadLibrary(os.path.join(curr_path, "libcryptoauth.dylib"))
         except:
             raise LibraryLoadError("Unable to load cryptoauthlib")
 

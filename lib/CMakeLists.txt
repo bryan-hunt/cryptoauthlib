@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.9)
+cmake_minimum_required(VERSION 2.6.4)
 project(cryptoauth)
 
 # Various Options for Build
@@ -17,20 +17,16 @@ file(GLOB JWT_SRC RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "jwt/*.c")
 file(GLOB PKCS11_SRC RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "pkcs11/*.c")
 
 # Add the basic sources to the library
-add_library(cryptoauth SHARED
-${LIB_SRC}
-${ATCACERT_SRC}
-${BASIC_SRC}
-${CRYPTO_SRC}
-${HOST_SRC}
-${JWT_SRC}
-hal/atca_hal.c )
+set(CRYPTOAUTH_SRC ${LIB_SRC} ${ATCACERT_SRC} ${BASIC_SRC} ${CRYPTO_SRC} ${HOST_SRC} ${JWT_SRC} hal/atca_hal.c )
 
 if(WIN32)
-target_sources(cryptoauth PUBLIC hal/hal_win_timer.c)
+set(CRYPTOAUTH_SRC ${CRYPTOAUTH_SRC} hal/hal_win_timer.c)
 set(HID_SRC ../third_party/hidapi/windows/hid.c)
+elseif(APPLE)
+set(CRYPTOAUTH_SRC ${CRYPTOAUTH_SRC} hal/hal_linux_timer.c)
+set(HID_SRC ../third_party/hidapi/mac/hid.c)
 elseif(UNIX)
-target_sources(cryptoauth PUBLIC hal/hal_linux_timer.c)
+set(CRYPTOAUTH_SRC ${CRYPTOAUTH_SRC} hal/hal_linux_timer.c)
 find_library(HAS_LIBUSB libusb)
 if(HAS_LIBUSB)
 set(HID_SRC ../third_party/hidapi/libusb/hid.c)
@@ -38,26 +34,29 @@ else()
 set(HID_SRC ../third_party/hidapi/linux/hid.c)
 endif()
 set(TWI_SRC hal/hal_linux_i2c_userspace.c)
-elseif(APPLE)
-target_sources(cryptoauth PUBLIC hal/hal_linux_timer.c)
-set(HID_SRC ../third_party/hidapi/mac/hid.c)
 else()
 set(HID_SRC )
 endif()
 
 if(ATCA_HAL_KIT_HID)
 add_definitions(-DATCA_HAL_KIT_HID)
-target_sources(cryptoauth PUBLIC hal/kit_protocol.c hal/hal_all_platforms_kit_hidapi.c ${HID_SRC})
+set(CRYPTOAUTH_SRC ${CRYPTOAUTH_SRC} hal/kit_protocol.c hal/hal_all_platforms_kit_hidapi.c ${HID_SRC})
 endif(ATCA_HAL_KIT_HID)
 
 if(ATCA_HAL_I2C)
 add_definitions(-DATCA_HAL_I2C)
-target_sources(cryptoauth PUBLIC ${TWI_SRC})
+set(CRYPTOAUTH_SRC ${CRYPTOAUTH_SRC} ${TWI_SRC})
 endif(ATCA_HAL_I2C)
 
 # Add Remaining Sources depending on target library type
 if(ATCA_PKCS11)
-target_sources(cryptoauth PUBLIC ${PKCS11_SRC} ${ATCACERT_DEF_SRC})
+set(CRYPTOAUTH_SRC ${CRYPTOAUTH_SRC} ${PKCS11_SRC} ${ATCACERT_DEF_SRC})
+endif()
+
+add_library(cryptoauth SHARED ${CRYPTOAUTH_SRC})
+
+# Add Remaining Sources depending on target library type
+if(ATCA_PKCS11)
 set_target_properties(cryptoauth PROPERTIES OUTPUT_NAME "ateccx08pkcs11")
 endif(ATCA_PKCS11)
 
@@ -72,11 +71,15 @@ set_target_properties(cryptoauth PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS true)
 target_link_libraries(cryptoauth setupapi.lib)
 endif(WIN32)
 
-if(UNIX)
+if(APPLE)
+find_library(IO_KIT_LIB IOKit)
+find_library(CORE_LIB CoreFoundation)
+target_link_libraries(cryptoauth ${IO_KIT_LIB} ${CORE_LIB})
+elseif(UNIX)
 if(HAS_LIBUSB)
 target_link_libraries(cryptoauth usb-1.0)
 endif()
 target_link_libraries(cryptoauth udev rt)
-endif(UNIX)
+endif()
 
 
