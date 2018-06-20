@@ -42,22 +42,40 @@
 
 ATCA_STATUS _atinit(ATCAIface ca_iface, ATCAHAL_t *hal);
 
-/** \brief constructor for ATCAIface objects
- * \param[in] cfg  points to the logical configuration for the interface
- * \return ATCAIface
- */
 
-ATCAIface newATCAIface(ATCAIfaceCfg *cfg)  // constructor
+#ifdef ATCA_INTERFACE_V2
+/** \brief Constructor for ATCAIface objects
+ * \param[in] cfg       Logical configuration for the interface
+ * \param[in] ca_iface  Interface structure to initialize. This pointer will
+ *                      be returned on success.
+ * \return Initialized ca_iface object on success. NULL on failure.
+ */
+ATCAIface newATCAIface_v2(ATCAIfaceCfg *cfg, ATCAIface ca_iface)
+#else
+/** \brief Constructor for ATCAIface objects
+ * \param[in] cfg  Logical configuration for the interface
+ * \return New interface instance on success. NULL on failure.
+ */
+ATCAIface newATCAIface(ATCAIfaceCfg *cfg)
+#endif
 {
+#ifndef ATCA_INTERFACE_V2
     ATCAIface ca_iface;
 
     ca_iface = (ATCAIface)malloc(sizeof(struct atca_iface));
+#endif
+    if (ca_iface == NULL)
+    {
+        return NULL;
+    }
     ca_iface->mType = cfg->iface_type;
     ca_iface->mIfaceCFG = cfg;
 
     if (atinit(ca_iface) != ATCA_SUCCESS)
     {
+#ifndef ATCA_INTERFACE_V2
         free(ca_iface);
+#endif
         ca_iface = NULL;
     }
 
@@ -66,12 +84,12 @@ ATCAIface newATCAIface(ATCAIfaceCfg *cfg)  // constructor
 
 // public ATCAIface methods
 
-/** \brief This function performs the HAL initialisation by calling intermediate HAL wrapper function.
- *  User should not call this function directly,instead use atcab_init() function
- * \param[in] ca_iface  points to the logical configuration for the interface
+/** \brief Performs the HAL initialisation by calling intermediate HAL wrapper
+ *         function. If using the basic API, the atcab_init() function should
+ *         be called instead.
+ * \param[in] ca_iface  Device to interact with.
  * \return ATCA_SUCCESS on success, otherwise an error code.
  */
-
 ATCA_STATUS atinit(ATCAIface ca_iface)
 {
     ATCA_STATUS status = ATCA_COMM_FAIL;
@@ -91,10 +109,11 @@ ATCA_STATUS atinit(ATCAIface ca_iface)
     return status;
 }
 
-/** \brief This function sends the data to device by calling intermediate HAL wrapper function.
- * \param[in] ca_iface   points to the logical configuration for the interface
- * \param[in] txdata    pointer to the data to be transmitted to the device
- * \param[in] txlength  The total number of bytes to be transmitted to the device
+/** \brief Sends the data to the device by calling intermediate HAL wrapper
+ *         function.
+ * \param[in] ca_iface  Device to interact with.
+ * \param[in] txdata    Data to be transmitted to the device.
+ * \param[in] txlength  Number of bytes to be transmitted to the device.
  * \return ATCA_SUCCESS on success, otherwise an error code.
  */
 ATCA_STATUS atsend(ATCAIface ca_iface, uint8_t *txdata, int txlength)
@@ -102,10 +121,12 @@ ATCA_STATUS atsend(ATCAIface ca_iface, uint8_t *txdata, int txlength)
     return ca_iface->atsend(ca_iface, txdata, txlength);
 }
 
-/**\brief This function receives  data from device by calling intermediate HAL wrapper function.
- * \param[in] ca_iface  points to the logical configuration for the interface
- * \param[in] rxdata   pointer to the data to be stored from device
- * \param[in] rxlength  pointer to holds the number of bytes to be received from device.
+/**\brief Receives data from the device by calling intermediate HAL wrapper
+ *        function.
+ * \param[in]    ca_iface  Device to interact with.
+ * \param[out]   rxdata    Data received will be returned here.
+ * \param[inout] rxlength  As input, the size of the rxdata buffer.
+ *                         As output, the number of bytes received.
  * \return ATCA_SUCCESS on success, otherwise an error code.
  */
 ATCA_STATUS atreceive(ATCAIface ca_iface, uint8_t *rxdata, uint16_t *rxlength)
@@ -113,9 +134,10 @@ ATCA_STATUS atreceive(ATCAIface ca_iface, uint8_t *rxdata, uint16_t *rxlength)
     return ca_iface->atreceive(ca_iface, rxdata, rxlength);
 }
 
-/** \brief This function performs waking up of device by calling intermediate HAL wrapper function.
- *  User should not call this function directly,instead  use atcab_wakeup() function
- * \param[in] ca_iface  points to the logical configuration for the interface
+/** \brief Wakes up the device by calling intermediate HAL wrapper function.
+ *         If using the basic API, the atcab_wakeup() function should be used
+ *         instead.
+ * \param[in] ca_iface  Device to interact with.
  * \return ATCA_SUCCESS on success, otherwise an error code.
  */
 ATCA_STATUS atwake(ATCAIface ca_iface)
@@ -124,9 +146,10 @@ ATCA_STATUS atwake(ATCAIface ca_iface)
 }
 
 
-/** \brief This function makes the device to go to idle state by calling intermediate HAL wrapper function.
- *  User should not call this function directly,instead  use atcab_idle() function
- * \param[in] ca_iface  points to the logical configuration for the interface
+/** \brief Puts the device into idle state by calling intermediate HAL wrapper
+ *         function. If using the basic API, the atcab_idle() function should
+ *         be used instead.
+ * \param[in] ca_iface  Device to interact with.
  * \return ATCA_SUCCESS on success, otherwise an error code.
  */
 ATCA_STATUS atidle(ATCAIface ca_iface)
@@ -138,9 +161,10 @@ ATCA_STATUS atidle(ATCAIface ca_iface)
     return status;
 }
 
-/** \brief This function makes the device to go to sleep by calling intermediate HAL wrapper function.
- *  User should not call this function directly,instead  use atcab_sleep() function
- * \param[in] ca_iface  points to the logical configuration for the interface
+/** \brief Puts the device into sleep state by calling intermediate HAL wrapper
+ *         function. If using the basic API, the atcab_sleep() function should
+ *         be used instead.
+ * \param[in] ca_iface  Device to interact with.
  * \return ATCA_SUCCESS on success, otherwise an error code.
  */
 ATCA_STATUS atsleep(ATCAIface ca_iface)
@@ -153,9 +177,9 @@ ATCA_STATUS atsleep(ATCAIface ca_iface)
 }
 
 
-/** \brief This function returns the pointer to Interface configuration of the Crypto Auth device.
- * \param[in] ca_iface  points to the logical configuration for the interface
- * \return returns the pointer to ATCAIfaceCfg.
+/** \brief Returns the logical interface configuration for the device.
+ * \param[in] ca_iface  Device interface.
+ * \return Logical interface configuration.
  */
 ATCAIfaceCfg * atgetifacecfg(ATCAIface ca_iface)
 {
@@ -163,9 +187,9 @@ ATCAIfaceCfg * atgetifacecfg(ATCAIface ca_iface)
 }
 
 
-/** \brief This function returns the pointer of HAL data of the Crypto Auth device.
- * \param[in] ca_iface  points to the logical configuration for the interface
- * \return returns the pointer to HAL data.
+/** \brief Returns the HAL data pointer for the device.
+ * \param[in] ca_iface  Device interface.
+ * \return HAL data pointer.
  */
 void* atgetifacehaldat(ATCAIface ca_iface)
 {
@@ -174,18 +198,22 @@ void* atgetifacehaldat(ATCAIface ca_iface)
 
 
 /** \brief destructor for ATCAIface objects
- * \param[in] ca_iface  points to the logical configuration for the interface
+ * \param[in] ca_iface  Device interface.
  */
-void deleteATCAIface(ATCAIface *ca_iface) // destructor
+void deleteATCAIface(ATCAIface *ca_iface)
 {
     if (*ca_iface)
     {
-        hal_iface_release( (*ca_iface)->mType, (*ca_iface)->hal_data);  // let HAL clean up and disable physical level interface if ref count is 0
-        free((void*)*ca_iface);
+        // let HAL clean up and disable physical level interface if ref count is 0
+        hal_iface_release((*ca_iface)->mType, (*ca_iface)->hal_data);
+#ifndef ATCA_INTERFACE_V2
+        free(*ca_iface);
+#endif
     }
 
     *ca_iface = NULL;
 }
+
 
 ATCA_STATUS _atinit(ATCAIface ca_iface, ATCAHAL_t *hal)
 {

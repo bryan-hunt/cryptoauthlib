@@ -55,12 +55,12 @@ int i2c_bus_ref_ct = 0;                         // total in-use count across bus
 //twi_options_t opt_twi_master;
 
 /** \brief discover any CryptoAuth devices on a given logical bus number
- * \param[in]  busNum  logical bus number on which to look for CryptoAuth devices
+ * \param[in]  bus_num  logical bus number on which to look for CryptoAuth devices
  * \param[out] cfg     pointer to head of an array of interface config structures which get filled in by this method
  * \param[out] found   number of devices found on this bus
  * \return ATCA_SUCCESS on success, otherwise an error code.
  */
-ATCA_STATUS hal_i2c_discover_devices(int busNum, ATCAIfaceCfg cfg[], int *found)
+ATCA_STATUS hal_i2c_discover_devices(int bus_num, ATCAIfaceCfg cfg[], int *found)
 {
     return ATCA_UNIMPLEMENTED;
 }
@@ -196,23 +196,27 @@ ATCA_STATUS hal_i2c_send(ATCAIface iface, uint8_t *txdata, int txlength)
 
 }
 
-/** \brief HAL implementation of I2C receive function for ASF I2C
- * \param[in] iface     instance
- * \param[in] rxdata    pointer to space to receive the data
- * \param[in] rxlength  ptr to expected number of receive bytes to request
+/** \brief HAL implementation of I2C receive function
+ * \param[in]    iface     Device to interact with.
+ * \param[out]   rxdata    Data received will be returned here.
+ * \param[inout] rxlength  As input, the size of the rxdata buffer.
+ *                         As output, the number of bytes received.
  * \return ATCA_SUCCESS on success, otherwise an error code.
  */
-
 ATCA_STATUS hal_i2c_receive(ATCAIface iface, uint8_t *rxdata, uint16_t *rxlength)
 {
-
     ATCAIfaceCfg *cfg = atgetifacecfg(iface);
     DRV_I2C_BUFFER_EVENT Transaction = DRV_I2C_BUFFER_EVENT_ERROR;
+    uint16_t count;
+    uint16_t rxdata_max_size = *rxlength;
 
-    //int bus = cfg->atcai2c.bus;
-    //int retries = cfg->rx_retries;
+    *rxlength = 0;
+    if (rxdata_max_size < 1)
+    {
+        return ATCA_SMALL_BUFFER;
+    }
 
-    read_bufHandle = DRV_I2C_Receive(drvI2CMasterHandle, cfg->atcai2c.slave_address, rxdata, *rxlength, NULL);
+    read_bufHandle = DRV_I2C_Receive(drvI2CMasterHandle, cfg->atcai2c.slave_address, rxdata, 1, NULL);
     do
     {
         Transaction = DRV_I2C_TransferStatusGet(drvI2CMasterHandle, read_bufHandle);
@@ -223,14 +227,30 @@ ATCA_STATUS hal_i2c_receive(ATCAIface iface, uint8_t *rxdata, uint16_t *rxlength
     }
     while (Transaction != DRV_I2C_BUFFER_EVENT_COMPLETE && Transaction != DRV_I2C_BUFFER_EVENT_ERROR);
 
-
-    if (atCheckCrc(rxdata) != ATCA_SUCCESS)
+    if (rxdata[0] < ATCA_RSP_SIZE_MIN)
     {
-        return ATCA_COMM_FAIL;
+        return ATCA_INVALID_SIZE;
+    }
+    if (rxdata[0] > rxdata_max_size)
+    {
+        return ATCA_SMALL_BUFFER;
     }
 
-    return ATCA_SUCCESS;
+    count = rxdata[0] - 1;
+    read_bufHandle = DRV_I2C_Receive(drvI2CMasterHandle, cfg->atcai2c.slave_address, &rxdata[1], count, NULL);
+    do
+    {
+        Transaction = DRV_I2C_TransferStatusGet(drvI2CMasterHandle, read_bufHandle);
+        if (Transaction == DRV_I2C_BUFFER_EVENT_ERROR)
+        {
+            return ATCA_COMM_FAIL;
+        }
+    }
+    while (Transaction != DRV_I2C_BUFFER_EVENT_COMPLETE && Transaction != DRV_I2C_BUFFER_EVENT_ERROR);
 
+    *rxlength = rxdata[0];
+
+    return ATCA_SUCCESS;
 }
 
 /** \brief wake up CryptoAuth device using I2C bus

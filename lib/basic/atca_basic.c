@@ -34,8 +34,13 @@
 #include "atca_basic.h"
 #include "host/atca_host.h"
 
-char atca_version[] = { "20180329" };  // change for each release, yyyymmdd
+const char atca_version[] = { "20180329" };  // change for each release, yyyymmdd
 ATCADevice _gDevice = NULL;
+#ifdef ATCA_INTERFACE_V2
+struct atca_command g_atcab_command;
+struct atca_iface g_atcab_iface;
+struct atca_device g_atcab_device;
+#endif
 #define MAX_BUSES   4
 
 /** \brief basic API methods are all prefixed with atcab_  (CryptoAuthLib Basic)
@@ -65,16 +70,21 @@ ATCA_STATUS atcab_init(ATCAIfaceCfg *cfg)
 {
     ATCA_STATUS status = ATCA_GEN_FAIL;
 
-    if (_gDevice)       // if there's already a device created, release it
+    // If a device has already been initialized, release it
+    if (_gDevice)
     {
         atcab_release();
     }
+
+    #ifndef ATCA_INTERFACE_V2
     _gDevice = newATCADevice(cfg);
+    #else
+    _gDevice = newATCADevice_v2(cfg, &g_atcab_device, &g_atcab_command, &g_atcab_iface);
+    #endif
 
     if ((_gDevice == NULL) || (_gDevice->mIface == NULL) || (_gDevice->mCommands == NULL))
     {
         return ATCA_GEN_FAIL;  // Device creation failed
-
     }
     if (cfg->devtype == ATECC608A)
     {

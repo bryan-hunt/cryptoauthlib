@@ -85,7 +85,7 @@ ATCA_STATUS atcab_aes(uint8_t mode, uint16_t key_id, const uint8_t* aes_in, uint
             break;
         }
 
-        if (aes_out && packet.rxsize >= (3 + AES_DATA_SIZE))
+        if (aes_out && packet.data[ATCA_COUNT_IDX] >= (3 + AES_DATA_SIZE))
         {
             // The AES command return a 16 byte data.
             memcpy(aes_out, &packet.data[ATCA_RSP_DATA_IDX], AES_DATA_SIZE);

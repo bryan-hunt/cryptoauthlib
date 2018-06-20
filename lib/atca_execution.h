@@ -44,10 +44,6 @@
 #include "atca_command.h"
 #include "atca_device.h"
 
-#ifdef __linux__
-#include <stddef.h>
-#endif
-
 #ifdef __cplusplus
 extern "C" {
 #endif

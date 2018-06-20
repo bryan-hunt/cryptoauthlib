@@ -232,12 +232,15 @@ ATCA_STATUS swi_uart_receive_byte(ATCASWIMaster_t *instance, uint8_t *data)
         if (rx_complete)
         {
             *data = usart_get(instance->usart_instance);
+            // Sometimes bit data from device is stretched, resulting in a
+            // range of values instead of distinct ZeroOut and ZeroOne tokens
             if ((*data >= 0x70) && (*data <= 0x7F))
             {
                 status = ATCA_SUCCESS;
             }
             else
             {
+                // This is an unexpected value from the device
                 status = ATCA_COMM_FAIL;
             }
         }

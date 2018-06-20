@@ -79,6 +79,7 @@ typedef enum
     ATCA_NOT_LOCKED             = 0xF8, //!< required zone was not locked
     ATCA_NO_DEVICES             = 0xF9, //!< For protocols that support device discovery (kit protocol), no devices were found
     ATCA_HEALTH_TEST_ERROR      = 0xFA, //!< random number generator health test error
+    ATCA_ALLOC_FAILURE          = 0xFB, //!< Couldn't allocate required memory
 } ATCA_STATUS;
 
 #ifdef __cplusplus

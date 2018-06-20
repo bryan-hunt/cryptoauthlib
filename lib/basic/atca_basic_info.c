@@ -74,7 +74,7 @@ ATCA_STATUS atcab_info_base(uint8_t mode, uint16_t param2, uint8_t* out_data)
             break;
         }
 
-        if (out_data != NULL && packet.rxsize >= 7)
+        if (out_data != NULL && packet.data[ATCA_COUNT_IDX] >= 7)
         {
             memcpy(out_data, &packet.data[ATCA_RSP_DATA_IDX], 4);
         }

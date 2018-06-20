@@ -64,7 +64,6 @@ extern "C" {
  *         verify. ATCA_EXECUTION_ERROR may occur when the public key is invalid and doesn't fall
  *         on the P256 curve.
  */
-
 int atcacert_verify_cert_hw(const atcacert_def_t* cert_def,
                             const uint8_t*        cert,
                             size_t                cert_size,
@@ -77,10 +76,9 @@ int atcacert_verify_cert_hw(const atcacert_def_t* cert_def,
  *
  * \param[out] challenge  Random challenge is return here. 32 bytes.
  *
- * \return On successful execution it returns ATCACERT_E_SUCCESS otherwise it returns error code.
+ * \return ATCACERT_E_SUCCESS on success, otherwise an error code.
  */
 int atcacert_gen_challenge_hw(uint8_t challenge[32]);
-
 
 
 /**

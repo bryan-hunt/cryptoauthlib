@@ -29,10 +29,11 @@
  * TERMS.
  */
 
-#include "cryptoauthlib.h"
-#include "atca_helpers.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include "cryptoauthlib.h"
+#include "atca_helpers.h"
+
 
 
 /* Ruleset:
@@ -44,7 +45,6 @@
 uint8_t atcab_b64rules_default[4]   = { '+', '/', '=', 64 };
 uint8_t atcab_b64rules_mime[4]      = { '+', '/', '=', 76 };
 uint8_t atcab_b64rules_urlsafe[4]   = { '-', '_', 0, 0 };
-
 
 /** \brief Function that convert a binary buffer to a hex string suitable for human reading
  *  \param[in]  binary input buffer to convert
@@ -115,12 +115,19 @@ ATCA_STATUS atcab_bin2hex_(const uint8_t* binary, int bin_len, char* ascii_hex, 
  *  \param[in]  bin_len      Hex length of binary buffer
  *  \return ATCA_SUCCESS on success, otherwise an error code.
  */
+#ifdef ATCA_INTERFACE_V2
+ATCA_STATUS atcab_hex2bin_v2(const char* ascii_hex, int ascii_hex_len, uint8_t* binary, int* bin_len, char* packed_hex)
+#else
 ATCA_STATUS atcab_hex2bin(const char* ascii_hex, int ascii_hex_len, uint8_t* binary, int* bin_len)
+#endif
 {
     int i = 0;
     int j = 0;
     uint32_t byt;
+
+#ifndef ATCA_INTERFACE_V2
     char* packed_hex = NULL;
+#endif
     int packed_len = ascii_hex_len;
     char hex_byte[3];
 
@@ -131,8 +138,14 @@ ATCA_STATUS atcab_hex2bin(const char* ascii_hex, int ascii_hex_len, uint8_t* bin
     }
 
     // Pack the bytes (remove white space & make even number of characters)
+#ifndef ATCA_INTERFACE_V2
     packed_hex = (char*)malloc(packed_len);
+    if (packed_hex == NULL)
+    {
+        return ATCA_ALLOC_FAILURE;
+    }
     memset(packed_hex, 0, packed_len);
+#endif
     packHex(ascii_hex, ascii_hex_len, packed_hex, &packed_len);
 
     // Initialize the binary buffer to all 0s
@@ -153,9 +166,12 @@ ATCA_STATUS atcab_hex2bin(const char* ascii_hex, int ascii_hex_len, uint8_t* bin
         binary[j] = byt;
     }
     *bin_len = j;
+#ifndef ATCA_INTERFACE_V2
     free(packed_hex);
+#endif
     return ATCA_SUCCESS;
 }
+
 
 /**
  * \brief Checks to see if a character is an ASCII representation of a digit ((c ge '0') and (c le '9'))
@@ -295,7 +311,7 @@ ATCA_STATUS atcab_printbin(uint8_t* binary, int bin_len, bool add_space)
     int line_len = 16;
 
     // Verify the inputs
-    if ((binary == NULL))
+    if (binary == NULL)
     {
         return ATCA_BAD_PARAM;
     }
@@ -331,8 +347,8 @@ ATCA_STATUS atcab_printbin(uint8_t* binary, int bin_len, bool add_space)
 ///////////////////////////////////////////////////////////////////////////////
 // Base 64 Encode/Decode
 
-#define IS_EQUAL    (char)64
-#define IS_INVALID  (char)0xFF
+#define B64_IS_EQUAL   (uint8_t)64
+#define B64_IS_INVALID (uint8_t)0xFF
 
 /**
  * \brief Returns true if this character is a valid base 64 character or if this is whitespace (A character can be
@@ -358,91 +374,39 @@ bool isBase64Digit(char c, const uint8_t * rules)
 }
 
 /**
- * \brief Remove white space from a base 64 string.
- * \param[in] ascii_base64	Initial base 64 string to remove white space from
- * \param[in] ascii_base64_len	Length of the initial base 64 string
- * \param[in] packed_base64	Resulting base 64 string without white space
- * \param[inout] packed_len	In: Size to packedHex buffer
- *							Out: Number of bytes in the packed base 64 string
- * \param[in] rules  base64 ruleset to use
- * \return ATCA_SUCCESS on success, otherwise an error code.
- */
-ATCA_STATUS packBase64(const char* ascii_base64, int ascii_base64_len, char* packed_base64, int* packed_len, const uint8_t * rules)
-{
-    ATCA_STATUS status = ATCA_SUCCESS;
-    int i = 0;
-    int j = 0;
-
-    do
-    {
-        // Verify the inputs
-        if ((ascii_base64 == NULL) || (packed_base64 == NULL) || (packed_len == NULL))
-        {
-            status = ATCA_BAD_PARAM;
-            BREAK(status, "Null input parameter");
-        }
-        // Loop through each character and only add the base 64 characters
-        for (i = 0; i < ascii_base64_len; i++)
-        {
-            if (isBase64Digit(ascii_base64[i], rules))
-            {
-                if (j > *packed_len)
-                {
-                    break;
-                }
-                packed_base64[j++] = ascii_base64[i];
-            }
-        }
-        for (; !rules[2] && j % 4; j++)
-        {
-            packed_base64[j] = 0;
-        }
-
-        *packed_len = j;
-    }
-    while (false);
-
-    return status;
-}
-
-/**
  * \brief Returns the base 64 index of the given character.
  * \param[in] c      character to check
  * \param[in] rules  base64 ruleset to use
  * \return the base 64 index of the given character
  */
-char base64Index(char c, const uint8_t * rules)
+uint8_t base64Index(char c, const uint8_t * rules)
 {
     if ((c >= 'A') && (c <= 'Z'))
     {
-        return (char)(c - 'A');
+        return (uint8_t)(c - 'A');
     }
     if ((c >= 'a') && (c <= 'z'))
     {
-        return (char)(26 + c - 'a');
+        return (uint8_t)(26 + c - 'a');
     }
     if ((c >= '0') && (c <= '9'))
     {
-        return (char)(52 + c - '0');
+        return (uint8_t)(52 + c - '0');
     }
     if (c == rules[0])
     {
-        return (char)62;
+        return (uint8_t)62;
     }
     if (c == rules[1])
     {
-        return (char)63;
+        return (uint8_t)63;
     }
-
     if (c == rules[2])
     {
-        return IS_EQUAL;
+        return B64_IS_EQUAL;
     }
-    return IS_INVALID;
+    return B64_IS_INVALID;
 }
-
-#define B64_IS_EQUAL   (char)64
-#define B64_IS_INVALID (char)0xFF
 
 /**
  * \brief Returns the base 64 character of the given index.
@@ -450,7 +414,7 @@ char base64Index(char c, const uint8_t * rules)
  * \param[in] rules  base64 ruleset to use
  * \return the base 64 character of the given index
  */
-char base64Char(char id, const uint8_t * rules)
+char base64Char(uint8_t id, const uint8_t * rules)
 {
     if (id >= 0 && (id < 26))
     {
@@ -480,183 +444,244 @@ char base64Char(char id, const uint8_t * rules)
     return B64_IS_INVALID;
 }
 
+static ATCA_STATUS atcab_base64decode_block(const uint8_t id[4], uint8_t* data, size_t* data_size, size_t data_max_size)
+{
+    ATCA_STATUS status = ATCA_SUCCESS;
+    size_t new_bytes = 0;
+
+    do
+    {
+        // Make sure padding characters can only be the last two
+        if ((id[0] == B64_IS_EQUAL) ||
+            (id[1] == B64_IS_EQUAL) ||
+            (id[2] == B64_IS_EQUAL && id[3] != B64_IS_EQUAL))
+        {
+            status = ATCA_BAD_PARAM;
+            BREAK(status, "Base64 chars after end padding");
+        }
+
+        // Make sure output buffer has enough space
+        if (id[2] == B64_IS_EQUAL)
+        {
+            new_bytes = 1;
+        }
+        else if (id[3] == B64_IS_EQUAL)
+        {
+            new_bytes = 2;
+        }
+        else
+        {
+            new_bytes = 3;
+        }
+        if ((*data_size) + new_bytes > data_max_size)
+        {
+            status = ATCA_BAD_PARAM;
+            BREAK(status, "decoded buffer too small");
+        }
+
+        // Decode into output buffer
+        data[(*data_size)++] = ((id[0] << 2) | (id[1] >> 4));
+        if (id[2] == B64_IS_EQUAL)
+        {
+            break;
+        }
+        data[(*data_size)++] = ((id[1] << 4) | (id[2] >> 2));
+        if (id[3] == B64_IS_EQUAL)
+        {
+            break;
+        }
+        data[(*data_size)++] = ((id[2] << 6) | id[3]);
+    }
+    while (false);
+
+    return status;
+}
+
 /**
  * \brief Decode base64 string to data with ruleset option.
  *
- * \param[in]    encoded      Base64 string to be decoded.
- * \param[in]    encoded_len  Size of the base64 string in bytes.
- * \param[out]   byte_array   Decoded data will be returned here.
- * \param[inout] array_len    As input, the size of the byte_array buffer.
- *                            As output, the length of the decoded data.
- * \param[in]    rules        base64 ruleset to use
+ * \param[in]    encoded       Base64 string to be decoded.
+ * \param[in]    encoded_size  Size of the base64 string in bytes.
+ * \param[out]   data          Decoded data will be returned here.
+ * \param[inout] data_size     As input, the size of the byte_array buffer.
+ *                             As output, the length of the decoded data.
+ * \param[in]    rules         base64 ruleset to use
  */
-ATCA_STATUS atcab_base64decode_(const char* encoded, size_t encoded_len, uint8_t* byte_array, size_t* array_len, const uint8_t * rules)
+ATCA_STATUS atcab_base64decode_(const char* encoded, size_t encoded_size, uint8_t* data, size_t* data_size, const uint8_t * rules)
 {
     ATCA_STATUS status = ATCA_SUCCESS;
-    int id[4];
-    int i = 0;
-    int j = 0;
-    char* packed_base64 = NULL;
-    /* Calculate the packet length round up to the next four byte boundary */
-    int packed_len = encoded_len + (encoded_len % 4);
-
-    // Set the output length.
-    size_t out_len = (encoded_len * 3) / 4;
-
-    // Allocate the memory for the packed base 64 buffer
-    packed_base64 = (char*)malloc(packed_len);
-    memset(packed_base64, 0, packed_len);
+    uint8_t id[4];
+    int id_index = 0;
+    size_t enc_index = 0;
+    size_t data_max_size;
+    bool is_done = false;
 
     do
     {
         // Check the input parameters
-        if (encoded == NULL || byte_array == NULL || array_len == NULL || !rules)
+        if (encoded == NULL || data == NULL || data_size == NULL || rules == NULL)
         {
             status = ATCA_BAD_PARAM;
             BREAK(status, "Null input parameter");
         }
-        // Pack the encoded characters (remove the white space from the encoded characters)
-        packBase64(encoded, encoded_len, packed_base64, &packed_len, rules);
+        data_max_size = *data_size;
+        *data_size = 0;
 
-        // Packed length must be divisible by 4
-        if (packed_len % 4 != 0)
+        // Start decoding the input data
+        for (enc_index = 0; enc_index < encoded_size; enc_index++)
         {
-            status = ATCA_BAD_PARAM;
-            BREAK(status, "Invalid base64 input");
-        }
-        if (*array_len < out_len)
-        {
-            status = ATCA_BAD_PARAM;
-            BREAK(status, "Length of decoded buffer too small");
-        }
-        // Initialize the return length to 0
-        *array_len = 0;
-
-        // Take the encoded bytes in groups of 4 and decode them into 3 bytes
-        for (i = 0; i < packed_len; i += 4)
-        {
-            id[0] = base64Index(packed_base64[i], rules);
-            id[1] = base64Index(packed_base64[i + 1], rules);
-            id[2] = base64Index(packed_base64[i + 2], rules);
-            id[3] = base64Index(packed_base64[i + 3], rules);
-            byte_array[j++] = (uint8_t)((id[0] << 2) | (id[1] >> 4));
-            if (id[2] < 64)
+            if (isWhiteSpace(encoded[enc_index]))
             {
-                byte_array[j++] = (uint8_t)((id[1] << 4) | (id[2] >> 2));
-                if (id[3] < 64)
+                continue; // Skip any whitespace characters
+            }
+            if (!isBase64Digit(encoded[enc_index], rules))
+            {
+                status = ATCA_BAD_PARAM;
+                BREAK(status, "Invalid base64 character");
+            }
+            if (is_done)
+            {
+                // We found valid base64 characters after end padding (equals)
+                // characters
+                status = ATCA_BAD_PARAM;
+                BREAK(status, "Base64 chars after end padding");
+            }
+            id[id_index++] = base64Index(encoded[enc_index], rules);
+            // Process data 4 characters at a time
+            if (id_index >= 4)
+            {
+                id_index = 0;
+                status = atcab_base64decode_block(id, data, data_size, data_max_size);
+                if (status != ATCA_SUCCESS)
                 {
-                    byte_array[j++] = (uint8_t)((id[2] << 6) | id[3]);
+                    break;
                 }
+
+                is_done = (id[3] == B64_IS_EQUAL);
             }
         }
-        *array_len = j;
+        if (status != ATCA_SUCCESS)
+        {
+            break;
+        }
+        if (id_index)
+        {
+            if (id_index < 2)
+            {
+                status = ATCA_BAD_PARAM;
+                BREAK(status, "Invalid number of base64 chars");
+            }
+            // End of base64 string, but no padding characters
+            for (; id_index < 4; id_index++)
+            {
+                id[id_index] = B64_IS_EQUAL;
+            }
+            status = atcab_base64decode_block(id, data, data_size, data_max_size);
+        }
     }
     while (false);
 
-    // Deallocate the packed buffer
-    free(packed_base64);
     return status;
 }
 
 /** \brief Encode data as base64 string with ruleset option. */
 ATCA_STATUS atcab_base64encode_(
-    const uint8_t*  byte_array,  /**< [in] The input byte array that will be converted to base 64 encoded characters */
-    size_t          array_len,   /**< [in] The length of the byte array */
-    char*           encoded,     /**< [in] The output converted to base 64 encoded characters. */
-    size_t*         encoded_len, /**< [inout] Input: The size of the encoded buffer, Output: The length of the encoded base 64 character string */
-    const uint8_t * rules        /**< [in] ruleset to use during encoding */
+    const uint8_t*  data,         /**< [in] The input byte array that will be converted to base 64 encoded characters */
+    size_t          data_size,    /**< [in] The length of the byte array */
+    char*           encoded,      /**< [in] The output converted to base 64 encoded characters. */
+    size_t*         encoded_size, /**< [inout] Input: The size of the encoded buffer, Output: The length of the encoded base 64 character string */
+    const uint8_t * rules         /**< [in] ruleset to use during encoding */
     )
 {
     ATCA_STATUS status = ATCA_SUCCESS;
-    size_t i = 0;
-    size_t j = 0;
+    size_t data_idx = 0;
+    size_t b64_idx = 0;
     size_t offset = 0;
-    int id = 0;
-    size_t out_len;
-
-    size_t r3 = (array_len % 3);
-    size_t b64_len = ((array_len * 4) / 3) + r3;
+    uint8_t id = 0;
+    size_t b64_len;
 
     do
     {
         // Check the input parameters
-        if (encoded == NULL || byte_array == NULL || encoded_len == NULL || !rules)
+        if (encoded == NULL || data == NULL || encoded_size == NULL || !rules)
         {
             status = ATCA_BAD_PARAM;
             BREAK(status, "Null input parameter");
         }
 
-        // Set the output length.  Add the \r\n every n characters
-        out_len = b64_len;
+        // Calculate output length for buffer size check
+        b64_len = (data_size / 3 + (data_size % 3 != 0)) * 4; // ceil(size/3)*4
         if (rules[3])
         {
-            out_len += (b64_len / rules[3]) * 2;
+            // We add newlines to the output
+            if (rules[3] % 4 != 0)
+            {
+                status = ATCA_BAD_PARAM;
+                BREAK(status, "newline rules[3] must be multiple of 4");
+            }
+            b64_len += (b64_len / rules[3]) * 2;
         }
-
-        if (*encoded_len < out_len)
+        b64_len += 1; // terminating null
+        if (*encoded_size < b64_len)
         {
-            status = ATCA_BAD_PARAM;
+            status = ATCA_SMALL_BUFFER;
             BREAK(status, "Length of encoded buffer too small");
         }
         // Initialize the return length to 0
-        *encoded_len = 0;
+        *encoded_size = 0;
 
         // Loop through the byte array by 3 then map to 4 base 64 encoded characters
-        for (i = 0; i < array_len; i += 3)
+        for (data_idx = 0; data_idx < data_size; data_idx += 3)
         {
-            id = (byte_array[i] & 0xFC) >> 2;
-            encoded[j++] = base64Char(id, rules);
-            id = (byte_array[i] & 0x03) << 4;
-            if (i + 1 < array_len)
+            // Add \r\n every n bytes if specified
+            if (rules[3] && data_idx > 0 && (b64_idx - offset) % rules[3] == 0)
             {
-                id |= (byte_array[i + 1] & 0xF0) >> 4;
-                encoded[j++] = base64Char(id, rules);
-                id = (byte_array[i + 1] & 0x0F) << 2;
-                if (i + 2 < array_len)
+                // as soon as we do this, we introduce an offset
+                encoded[b64_idx++] = '\r';
+                encoded[b64_idx++] = '\n';
+                offset += 2;
+            }
+
+            id = (data[data_idx] & 0xFC) >> 2;
+            encoded[b64_idx++] = base64Char(id, rules);
+            id = (data[data_idx] & 0x03) << 4;
+            if (data_idx + 1 < data_size)
+            {
+                id |= (data[data_idx + 1] & 0xF0) >> 4;
+                encoded[b64_idx++] = base64Char(id, rules);
+                id = (data[data_idx + 1] & 0x0F) << 2;
+                if (data_idx + 2 < data_size)
                 {
-                    id |= (byte_array[i + 2] & 0xC0) >> 6;
-                    encoded[j++] = base64Char(id, rules);
-                    id = byte_array[i + 2] & 0x3F;
-                    encoded[j++] = base64Char(id, rules);
+                    id |= (data[data_idx + 2] & 0xC0) >> 6;
+                    encoded[b64_idx++] = base64Char(id, rules);
+                    id = data[data_idx + 2] & 0x3F;
+                    encoded[b64_idx++] = base64Char(id, rules);
                 }
                 else
                 {
-                    encoded[j++] = base64Char(id, rules);
-                    encoded[j++] = base64Char(IS_EQUAL, rules);
+                    encoded[b64_idx++] = base64Char(id, rules);
+                    encoded[b64_idx++] = base64Char(B64_IS_EQUAL, rules);
                 }
             }
             else
             {
-                encoded[j++] = base64Char(id, rules);
-                encoded[j++] = base64Char(IS_EQUAL, rules);
-                encoded[j++] = base64Char(IS_EQUAL, rules);
-            }
-            // Add \r\n every n bytes if specified
-            if (rules[3] && ((j - offset) % rules[3] == 0) && encoded[j - 1])
-            {
-                // as soon as we do this, we introduce an offset
-                encoded[j++] = '\r';
-                encoded[j++] = '\n';
-                offset += 2;
+                encoded[b64_idx++] = base64Char(id, rules);
+                encoded[b64_idx++] = base64Char(B64_IS_EQUAL, rules);
+                encoded[b64_idx++] = base64Char(B64_IS_EQUAL, rules);
             }
         }
 
-        /* Check if there is padding to be stripped from the end*/
-        for (j -= 1; j; j--)
+        // Strip any trailing nulls
+        while (b64_idx > 1 && encoded[b64_idx - 1] == 0)
         {
-            if (encoded[j])
-            {
-                if ('\r' != encoded[j] && '\n' != encoded[j])
-                {
-                    break;
-                }
-            }
+            b64_idx--;
         }
-        /* Make sure the result is terminated */
-        encoded[++j] = 0;
 
-        // Set the final encoded length
-        *encoded_len = j;
+        // Null terminate end
+        encoded[b64_idx++] = 0;
+
+        // Set the final encoded length (excluding terminating null)
+        *encoded_size = b64_idx - 1;
     }
     while (false);
     return status;
@@ -695,5 +720,6 @@ ATCA_STATUS atcab_base64decode(const char* encoded, size_t encoded_len, uint8_t*
 {
     return atcab_base64decode_(encoded, encoded_len, byte_array, array_len, atcab_b64rules_default);
 }
+
 
 

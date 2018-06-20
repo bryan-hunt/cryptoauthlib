@@ -32,7 +32,15 @@
 #ifndef ATCACERT_DATE_H
 #define ATCACERT_DATE_H
 
+#include <stddef.h>
 #include "atcacert.h"
+
+
+
+// Inform function naming when compiling in C++
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /** \defgroup atcacert_ Certificate manipulation methods (atcacert_)
  *
@@ -73,19 +81,9 @@ typedef enum atcacert_date_format_e
 #define DATEFMT_POSIX_UINT32_LE_SIZE (4)
 #define DATEFMT_RFC5280_GEN_SIZE     (15)
 #define DATEFMT_MAX_SIZE             DATEFMT_ISO8601_SEP_SIZE
+#define ATCACERT_DATE_FORMAT_SIZES_COUNT 5
 
-static const size_t ATCACERT_DATE_FORMAT_SIZES[] = {
-    DATEFMT_ISO8601_SEP_SIZE,
-    DATEFMT_RFC5280_UTC_SIZE,
-    DATEFMT_POSIX_UINT32_BE_SIZE,
-    DATEFMT_POSIX_UINT32_LE_SIZE,
-    DATEFMT_RFC5280_GEN_SIZE
-};
-
-// Inform function naming when compiling in C++
-#ifdef __cplusplus
-extern "C" {
-#endif
+extern const size_t ATCACERT_DATE_FORMAT_SIZES[ATCACERT_DATE_FORMAT_SIZES_COUNT];
 
 /**
  * \brief Format a timestamp according to the format type.
@@ -96,7 +94,7 @@ extern "C" {
  * \param[inout] formatted_date_size  As input, the size of the formatted_date buffer.
  *                                    As output, the size of the returned formatted_date.
  *
- * \return On successful execution it returns ATCACERT_E_SUCCESS otherwise it returns error code.
+ * \return ATCACERT_E_SUCCESS on success, otherwise an error code.
  */
 int atcacert_date_enc(atcacert_date_format_t   format,
                       const atcacert_tm_utc_t* timestamp,
@@ -111,7 +109,7 @@ int atcacert_date_enc(atcacert_date_format_t   format,
  * \param[in]  formatted_date_size  Size of the formatted date in bytes.
  * \param[out] timestamp            Parsed timestamp is returned here.
  *
- * \return On successful execution it returns ATCACERT_E_SUCCESS otherwise it returns error code.
+ * \return ATCACERT_E_SUCCESS on success, otherwise an error code.
  */
 int atcacert_date_dec(atcacert_date_format_t format,
                       const uint8_t*         formatted_date,
@@ -157,7 +155,7 @@ int atcacert_date_dec_compcert(const uint8_t          enc_dates[3],
  * \param[in]  format     Format to get the max date for.
  * \param[out] timestamp  Max date is returned here.
  *
- * \return On successful execution it returns ATCACERT_E_SUCCESS otherwise it returns error code.
+ * \return ATCACERT_E_SUCCESS on success, otherwise an error code.
  */
 int atcacert_date_get_max_date(atcacert_date_format_t format, atcacert_tm_utc_t* timestamp);
 

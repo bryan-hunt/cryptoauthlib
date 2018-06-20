@@ -148,7 +148,8 @@ struct atca_iface
                         // no ATCA object should touch this except HAL, HAL manages this pointer and memory it points to
 };
 
-ATCAIface newATCAIface(ATCAIfaceCfg *cfg);  // constructor
+ATCAIface newATCAIface(ATCAIfaceCfg *cfg);
+ATCAIface newATCAIface_v2(ATCAIfaceCfg *cfg, ATCAIface ca_iface);
 // IFace methods
 ATCA_STATUS atinit(ATCAIface ca_iface);
 ATCA_STATUS atpostinit(ATCAIface ca_iface);
@@ -162,7 +163,7 @@ ATCA_STATUS atsleep(ATCAIface ca_iface);
 ATCAIfaceCfg * atgetifacecfg(ATCAIface ca_iface);
 void* atgetifacehaldat(ATCAIface ca_iface);
 
-void deleteATCAIface(ATCAIface *dev);        // destructor
+void deleteATCAIface(ATCAIface *ca_iface);
 /*---- end of OATCAIface ----*/
 
 #ifdef __cplusplus

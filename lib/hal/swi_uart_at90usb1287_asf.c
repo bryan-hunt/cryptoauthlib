@@ -216,14 +216,15 @@ ATCA_STATUS swi_uart_receive_byte(ATCASWIMaster_t *instance, uint8_t *data)
 
     *data = 0xFF;
     bool rx_complete = false;
-    ATCA_STATUS status = ATCA_EXECUTION_ERROR /*ATCA_CMD_FAIL*/;
+    ATCA_STATUS status = ATCA_COMM_FAIL;
 #ifdef DEBUG_PIN
     gpio_toggle_pin(DEBUG_PIN_2);
 #endif
     // Receive one byte over UART module
     while ((retries > 0) && (status != ATCA_SUCCESS))
     {
-        timeout = 0x7F; retries--;
+        timeout = 0x7F;
+        retries--;
         while ((timeout > 0) && (rx_complete == false))
         {
             rx_complete = usart_rx_is_complete(instance->usart_instance);
@@ -234,13 +235,16 @@ ATCA_STATUS swi_uart_receive_byte(ATCASWIMaster_t *instance, uint8_t *data)
         {
             usart_serial_getchar(instance->usart_instance, data);
             //if ((*data == 0x7D) || (*data == 0x7F))
+            // Sometimes bit data from device is stretched, resulting in a
+            // range of values instead of distinct ZeroOut and ZeroOne tokens
             if ((*data >= 0x70) && (*data <= 0x7F))
             {
                 status = ATCA_SUCCESS;
             }
             else
             {
-                status = ATCA_EXECUTION_ERROR /*ATCA_CMD_FAIL*/;
+                // This is an unexpected value from the device
+                status = ATCA_COMM_FAIL;
             }
         }
     }

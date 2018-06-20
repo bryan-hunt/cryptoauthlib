@@ -31,8 +31,9 @@
 
 
 #ifndef ATCA_HOST_H
-#   define ATCA_HOST_H
+#define ATCA_HOST_H
 
+#include <stdint.h>
 #include "cryptoauthlib.h"  // contains definitions used by chip and these routines
 
 /** \defgroup atcah Host side crypto methods (atcah_)
@@ -111,12 +112,12 @@
 typedef struct atca_temp_key
 {
     uint8_t  value[ATCA_KEY_SIZE * 2]; //!< Value of TempKey (64 bytes for ATECC608A only)
-    uint32_t key_id       : 4;         //!< If TempKey was derived from a slot or transport key (GenDig or GenKey), that key ID is saved here.
-    uint32_t source_flag  : 1;         //!< Indicates id TempKey started from a random nonce (0) or not (1).
-    uint32_t gen_dig_data : 1;         //!< TempKey was derived from the GenDig command.
-    uint32_t gen_key_data : 1;         //!< TempKey was derived from the GenKey command (ATECC devices only).
-    uint32_t no_mac_flag  : 1;         //!< TempKey was derived from a key that has the NoMac bit set preventing the use of the MAC command. Known as CheckFlag in ATSHA devices).
-    uint32_t valid        : 1;         //!< TempKey is valid.
+    unsigned key_id       : 4;         //!< If TempKey was derived from a slot or transport key (GenDig or GenKey), that key ID is saved here.
+    unsigned source_flag  : 1;         //!< Indicates id TempKey started from a random nonce (0) or not (1).
+    unsigned gen_dig_data : 1;         //!< TempKey was derived from the GenDig command.
+    unsigned gen_key_data : 1;         //!< TempKey was derived from the GenKey command (ATECC devices only).
+    unsigned no_mac_flag  : 1;         //!< TempKey was derived from a key that has the NoMac bit set preventing the use of the MAC command. Known as CheckFlag in ATSHA devices).
+    unsigned valid        : 1;         //!< TempKey is valid.
     uint8_t  is_64;                    //!< TempKey has 64 bytes of valid data
 } atca_temp_key_t;
 

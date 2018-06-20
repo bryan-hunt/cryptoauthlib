@@ -54,8 +54,8 @@
 
 #define RECEIVE_MODE    0   // UART Receive mode, RX enabled
 #define TRANSMIT_MODE   1   // UART Transmit mode, RX disabled
-#define RX_DELAY        { volatile uint8_t delay = 90; while (delay--) { __asm__ (""); } }
-#define TX_DELAY        90
+#define RX_DELAY        10  // Delay before responses come
+#define TX_DELAY        90  // Delay before new flag is sent
 
 #define DEBUG_PIN_1     EXT2_PIN_5
 #define DEBUG_PIN_2     EXT2_PIN_6

@@ -36,27 +36,62 @@
  * \brief ATCADevice object - composite of command and interface objects
    @{ */
 
-/** \brief constructor for an Microchip CryptoAuth device
- * \param[in] cfg  pointer to an interface configuration object
- * \return reference to a new ATCADevice
+#ifdef ATCA_INTERFACE_V2
+/** \brief constructor for a Microchip CryptoAuth device
+ * \param[in] cfg      Interface configuration object describing how to
+ *                     initialize the device.
+ * \param[in] cadev    Device object to be initialized. This will be the
+ *                     returned pointer if there was no error.
+ * \param[in] cacmd    Command object to be used with the device.
+ * \param[in] caiface  Interface object to be used with the device.
+ * \return Initialized cadev object on success. NULL on failure.
  */
-
+ATCADevice newATCADevice_v2(ATCAIfaceCfg *cfg, ATCADevice cadev, ATCACommand cacmd, ATCAIface caiface)
+#else
+/** \brief constructor for a Microchip CryptoAuth device
+ * \param[in] cfg  pointer to an interface configuration object
+ * \return Reference to a new ATCADevice on success. NULL on failure.
+ */
 ATCADevice newATCADevice(ATCAIfaceCfg *cfg)
+#endif
 {
     ATCADevice ca_dev = NULL;
 
+#ifdef ATCA_INTERFACE_V2
+    if (cfg == NULL || cadev == NULL || cacmd == NULL || caiface == NULL)
+#else
     if (cfg == NULL)
+#endif
     {
         return NULL;
     }
 
+#ifdef ATCA_INTERFACE_V2
+    ca_dev = cadev;
+    ca_dev->mCommands = newATCACommand_v2(cfg->devtype, cacmd);
+    ca_dev->mIface = newATCAIface_v2(cfg, caiface);
+#else
     ca_dev = (ATCADevice)malloc(sizeof(struct atca_device));
-    ca_dev->mCommands = (ATCACommand)newATCACommand(cfg->devtype);
-    ca_dev->mIface    = (ATCAIface)newATCAIface(cfg);
-
+    if (ca_dev == NULL)
+    {
+        return NULL;
+    }
+    ca_dev->mCommands = newATCACommand(cfg->devtype);
+    ca_dev->mIface    = newATCAIface(cfg);
+#endif
     if (ca_dev->mCommands == NULL || ca_dev->mIface == NULL)
     {
+        if (ca_dev->mCommands)
+        {
+            deleteATCACommand(&ca_dev->mCommands);
+        }
+        if (ca_dev->mIface)
+        {
+            deleteATCAIface(&ca_dev->mIface);
+        }
+#ifndef ATCA_INTERFACE_V2
         free(ca_dev);
+#endif
         ca_dev = NULL;
     }
 
@@ -76,7 +111,6 @@ ATCACommand atGetCommands(ATCADevice dev)
  * \param[in] dev  reference to a device
  * \return reference to the ATCAIface object for the device
  */
-
 ATCAIface atGetIFace(ATCADevice dev)
 {
     return dev->mIface;
@@ -84,7 +118,6 @@ ATCAIface atGetIFace(ATCADevice dev)
 
 /** \brief destructor for a device NULLs reference after object is freed
  * \param[in] ca_dev  pointer to a reference to a device
- *
  */
 void deleteATCADevice(ATCADevice *ca_dev)   // destructor
 {
@@ -92,9 +125,11 @@ void deleteATCADevice(ATCADevice *ca_dev)   // destructor
 
     if (*ca_dev)
     {
-        deleteATCACommand( (ATCACommand*)&(dev->mCommands));
-        deleteATCAIface((ATCAIface*)&(dev->mIface));
-        free((void*)*ca_dev);
+        deleteATCACommand(&dev->mCommands);
+        deleteATCAIface(&dev->mIface);
+#ifndef ATCA_INTERFACE_V2
+        free(*ca_dev);
+#endif
     }
 
     *ca_dev = NULL;

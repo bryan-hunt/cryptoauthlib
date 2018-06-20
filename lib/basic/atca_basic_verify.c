@@ -116,7 +116,7 @@ ATCA_STATUS atcab_verify(uint8_t mode, uint16_t key_id, const uint8_t* signature
         }
 
         // The Verify command may return MAC if requested
-        if ((mac != NULL) && (packet.rxsize >= (MAC_SIZE + ATCA_PACKET_OVERHEAD)))
+        if ((mac != NULL) && (packet.data[ATCA_COUNT_IDX] >= (MAC_SIZE + ATCA_PACKET_OVERHEAD)))
         {
             memcpy(mac, &packet.data[ATCA_RSP_DATA_IDX], MAC_SIZE);
         }

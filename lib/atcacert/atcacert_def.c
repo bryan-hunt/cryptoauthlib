@@ -200,6 +200,7 @@ int atcacert_get_device_locs(const atcacert_def_t*  cert_def,
             .offset     = 0,
             .count      = 13
         };
+
         ret = atcacert_merge_device_loc(
             device_locs,
             device_locs_count,

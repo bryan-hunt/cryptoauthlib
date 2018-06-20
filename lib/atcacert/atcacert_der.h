@@ -60,7 +60,7 @@ extern "C" {
  * \param[inout] der_length_size  As input, size of der_length buffer in bytes.
  *                                As output, the size of the DER length encoding in bytes.
  *
- * \return On successful execution it returns ATCACERT_E_SUCCESS otherwise it returns error code.
+ * \return ATCACERT_E_SUCCESS on success, otherwise an error code.
  */
 int atcacert_der_enc_length(uint32_t length, uint8_t* der_length, size_t* der_length_size);
 
@@ -74,7 +74,7 @@ int atcacert_der_enc_length(uint32_t length, uint8_t* der_length, size_t* der_le
  *                                As output, the size of the DER encoded length that was decoded.
  * \param[out]   length           Decoded length is returned here.
  *
- * \return On successful execution it returns ATCACERT_E_SUCCESS otherwise it returns error code.
+ * \return ATCACERT_E_SUCCESS on success, otherwise an error code.
  */
 int atcacert_der_dec_length(const uint8_t* der_length, size_t* der_length_size, uint32_t* length);
 
@@ -93,7 +93,7 @@ int atcacert_der_adjust_length(uint8_t* der_length, size_t* der_length_size, int
  * \param[inout] der_int_size   As input, the size of the der_int buffer in bytes.
  *                              As output, the size of the DER integer returned in bytes.
  *
- * \return On successful execution it returns ATCACERT_E_SUCCESS otherwise it returns error code.
+ * \return ATCACERT_E_SUCCESS on success, otherwise an error code.
  */
 int atcacert_der_enc_integer(const uint8_t* int_data,
                              size_t         int_data_size,
@@ -115,7 +115,7 @@ int atcacert_der_enc_integer(const uint8_t* int_data,
  * \param[inout]  int_data_size  As input, the size of int_data in bytes.
  *                               As output, the size of the decoded integer in bytes.
  *
- * \return On successful execution it returns ATCACERT_E_SUCCESS otherwise it returns error code.
+ * \return ATCACERT_E_SUCCESS on success, otherwise an error code.
  */
 int atcacert_der_dec_integer(const uint8_t* der_int,
                              size_t*        der_int_size,
@@ -136,7 +136,7 @@ int atcacert_der_dec_integer(const uint8_t* der_int,
  * \param[inout] der_sig_size   As input, the size of the x509_sig buffer in bytes.
  *                              As output, the size of the returned X.509 signature in bytes.
  *
- * \return On successful execution it returns ATCACERT_E_SUCCESS otherwise it returns error code.
+ * \return ATCACERT_E_SUCCESS on success, otherwise an error code.
  */
 int atcacert_der_enc_ecdsa_sig_value(const uint8_t raw_sig[64],
                                      uint8_t*      der_sig,
@@ -155,7 +155,7 @@ int atcacert_der_enc_ecdsa_sig_value(const uint8_t raw_sig[64],
  * \param[out]   raw_sig        Parsed P256 ECDSA signature will be returned in this buffer.
  *                              Formatted as R and S integers concatenated together. 64 bytes.
  *
- * \return On successful execution it returns ATCACERT_E_SUCCESS otherwise it returns error code.
+ * \return ATCACERT_E_SUCCESS on success, otherwise an error code.
  */
 int atcacert_der_dec_ecdsa_sig_value(const uint8_t * der_sig,
                                      size_t *        der_sig_size,

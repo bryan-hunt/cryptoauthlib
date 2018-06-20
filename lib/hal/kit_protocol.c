@@ -164,26 +164,24 @@ ATCA_STATUS kit_receive(ATCAIface iface, uint8_t* rxdata, uint16_t* rxsize)
     ATCA_STATUS status = ATCA_SUCCESS;
     uint8_t kitstatus = 0;
     int nkitbuf = 0;
-    int dataSize = 0;
-    char* pkitbuf = NULL;
+    int dataSize;
+    char pkitbuf[256 * 2 + KIT_RX_WRAP_SIZE];
 
     // Check the pointers
     if ((rxdata == NULL) || (rxsize == NULL))
     {
         return ATCA_BAD_PARAM;
     }
-
-    // Adjust the read buffer size
     dataSize = *rxsize;
-    nkitbuf = dataSize * 2 + KIT_RX_WRAP_SIZE;
-    pkitbuf = malloc(nkitbuf);
-    memset(pkitbuf, 0, nkitbuf);
+    *rxsize = 0;
+
+    memset(pkitbuf, 0, sizeof(pkitbuf));
 
     // Receive the bytes
+    nkitbuf = sizeof(pkitbuf);
     status = kit_phy_receive(iface, pkitbuf, &nkitbuf);
     if (status != ATCA_SUCCESS)
     {
-        free(pkitbuf);
         return ATCA_GEN_FAIL;
     }
 
@@ -193,14 +191,15 @@ ATCA_STATUS kit_receive(ATCAIface iface, uint8_t* rxdata, uint16_t* rxsize)
 #endif
 
     // Unwrap from kit protocol
-    memset(rxdata, 0, *rxsize);
     status = kit_parse_rsp(pkitbuf, nkitbuf, &kitstatus, rxdata, &dataSize);
-    *rxsize = dataSize;
+    if (status != ATCA_SUCCESS)
+    {
+        return status;
+    }
 
-    // Free the bytes
-    free(pkitbuf);
+    *rxsize = (uint16_t)dataSize;
 
-    return status;
+    return ATCA_SUCCESS;
 }
 
 /** \brief Call the wake for kit protocol

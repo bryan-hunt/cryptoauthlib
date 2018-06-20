@@ -87,7 +87,7 @@ ATCA_STATUS atcab_secureboot(uint8_t mode, uint16_t param2, const uint8_t* diges
             break;
         }
 
-        if ((mac != NULL) && (packet.rxsize >= SECUREBOOT_RSP_SIZE_MAC))
+        if ((mac != NULL) && (packet.data[ATCA_COUNT_IDX] >= SECUREBOOT_RSP_SIZE_MAC))
         {
             memcpy(mac, &packet.data[ATCA_RSP_DATA_IDX], SECUREBOOT_MAC_SIZE);
         }
@@ -166,7 +166,7 @@ ATCA_STATUS atcab_secureboot_mac(uint8_t mode, const uint8_t* digest, const uint
         }
 
         // Encrypt the digest
-        memcpy(&sboot_enc_params, digest, sizeof(sboot_enc_params));
+        memset(&sboot_enc_params, 0, sizeof(sboot_enc_params));
         sboot_enc_params.digest = digest;
         sboot_enc_params.io_key = io_key;
         sboot_enc_params.temp_key = &tempkey;

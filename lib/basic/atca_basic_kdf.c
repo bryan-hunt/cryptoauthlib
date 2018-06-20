@@ -71,7 +71,6 @@ ATCA_STATUS atcab_kdf(uint8_t mode, uint16_t key_id, const uint32_t details, con
     ATCACommand ca_cmd = _gDevice->mCommands;
     ATCA_STATUS status = ATCA_GEN_FAIL;
     uint16_t out_data_size = 0;
-    uint16_t out_nonce_size = 0;
 
     do
     {
@@ -103,7 +102,7 @@ ATCA_STATUS atcab_kdf(uint8_t mode, uint16_t key_id, const uint32_t details, con
         }
 
         // Build command
-        if ((status = atKDF(ca_cmd, &packet, &out_data_size, &out_nonce_size)) != ATCA_SUCCESS)
+        if ((status = atKDF(ca_cmd, &packet)) != ATCA_SUCCESS)
         {
             break;
         }
@@ -114,16 +113,25 @@ ATCA_STATUS atcab_kdf(uint8_t mode, uint16_t key_id, const uint32_t details, con
             break;
         }
 
+        if (((mode & KDF_MODE_ALG_MASK) == KDF_MODE_ALG_PRF) && (details & KDF_DETAILS_PRF_TARGET_LEN_64))
+        {
+            out_data_size = 64;
+        }
+        else
+        {
+            out_data_size = 32;
+        }
+
         // Return OutData if possible
-        if (out_data != NULL && packet.rxsize >= (ATCA_PACKET_OVERHEAD + out_data_size))
+        if (out_data != NULL && packet.data[ATCA_COUNT_IDX] >= (ATCA_PACKET_OVERHEAD + out_data_size))
         {
             memcpy(out_data, &packet.data[ATCA_RSP_DATA_IDX], out_data_size);
         }
 
         // return OutNonce if possible
-        if (out_nonce != NULL && packet.rxsize >= (ATCA_PACKET_OVERHEAD + out_data_size + out_nonce_size))
+        if (out_nonce != NULL && packet.data[ATCA_COUNT_IDX] >= (ATCA_PACKET_OVERHEAD + out_data_size + 32))
         {
-            memcpy(out_nonce, &packet.data[ATCA_RSP_DATA_IDX + out_data_size], out_nonce_size);
+            memcpy(out_nonce, &packet.data[ATCA_RSP_DATA_IDX + out_data_size], 32);
         }
     }
     while (false);

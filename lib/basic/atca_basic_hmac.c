@@ -81,7 +81,7 @@ ATCA_STATUS atcab_hmac(uint8_t mode, uint16_t key_id, uint8_t* digest)
             break;
         }
 
-        if (packet.rxsize != HMAC_DIGEST_SIZE + 3)
+        if (packet.data[ATCA_COUNT_IDX] != HMAC_DIGEST_SIZE + 3)
         {
             status = ATCA_RX_FAIL; // Unexpected response size
             break;

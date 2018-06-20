@@ -200,12 +200,12 @@ ATCA_STATUS hal_kit_hid_discover_buses(int cdc_buses[], int max_buses)
 }
 
 /** \brief discover any CryptoAuth devices on a given logical bus number.This function is currently not implemented.
- * \param[in] busNum - logical bus number on which to look for CryptoAuth devices
+ * \param[in] bus_num - logical bus number on which to look for CryptoAuth devices
  * \param[out] cfg[] - pointer to head of an array of interface config structures which get filled in by this method
  * \param[out] *found - number of devices found on this bus
  * \return ATCA_UNIMPLEMENTED
  */
-ATCA_STATUS hal_kit_hid_discover_devices(int busNum, ATCAIfaceCfg cfg[], int *found)
+ATCA_STATUS hal_kit_hid_discover_devices(int bus_num, ATCAIfaceCfg cfg[], int *found)
 {
     // TODO: Add kitg protocol calls to discover all devices
     return ATCA_UNIMPLEMENTED;
@@ -361,9 +361,9 @@ ATCA_STATUS kit_phy_receive(ATCAIface iface, char* rxdata, int* rxsize)
         }
         // Protect rxdata from overwriting, this will have the result of truncating the returned bytes
         // Remaining space in rxdata
-        bytes_remain = (*rxsize - total_bytes);
+        //bytes_remain = (*rxsize - total_bytes);
         // Use the minimum between number of bytes read and remaining space
-        bytes_to_cpy = min(bytes_remain, bytes_to_cpy);
+        //bytes_to_cpy = min(bytes_remain, bytes_to_cpy);
 
         // Copy the received data
         memcpy(&rxdata[total_bytes], &buffer[1], bytes_to_cpy);

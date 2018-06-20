@@ -65,7 +65,7 @@ typedef struct atcaI2Cmaster
 } ATCAI2CMaster_t;
 
 void i2c_write(I2C_MODULE i2c_id, uint8_t address, uint8_t *data, int len);
-void i2c_read(I2C_MODULE i2c_id, uint8_t address, uint8_t *data, uint16_t len);
+ATCA_STATUS i2c_read(I2C_MODULE i2c_id, uint8_t address, uint8_t *data, uint16_t len);
 
 void change_i2c_speed(ATCAIface iface, uint32_t speed);
 

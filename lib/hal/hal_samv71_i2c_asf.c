@@ -94,6 +94,12 @@ ATCA_STATUS hal_i2c_discover_devices(int bus_num, ATCAIfaceCfg cfg[], int *found
     ATCAIfaceCfg *head = cfg;
     uint8_t slave_address = 0x01;
     ATCADevice device;
+
+#ifdef ATCA_INTERFACE_V2
+    struct atca_device disc_device;
+    struct atca_command disc_command;
+    struct atca_iface disc_iface;
+#endif
     ATCAPacket packet;
     ATCA_STATUS status;
     uint8_t revs608[][4] = { { 0x00, 0x00, 0x60, 0x01 }, { 0x00, 0x00, 0x60, 0x02 } };
@@ -121,7 +127,11 @@ ATCA_STATUS hal_i2c_discover_devices(int bus_num, ATCAIfaceCfg cfg[], int *found
     }
 
     hal_i2c_init(&hal, &discoverCfg);
+#ifdef ATCA_INTERFACE_V2
+    device = newATCADevice_v2(&discoverCfg, &disc_device, &disc_command, &disc_iface);
+#else
     device = newATCADevice(&discoverCfg);
+#endif
 
     // iterate through all addresses on given i2c bus
     // all valid 7-bit addresses go from 0x07 to 0x78
@@ -337,27 +347,35 @@ ATCA_STATUS hal_i2c_send(ATCAIface iface, uint8_t *txdata, int txlength)
 }
 
 /** \brief HAL implementation of I2C receive function for ASF I2C
- * \param[in] iface     instance
- * \param[out] rxdata    pointer to space to receive the data
- * \param[in] rxlength  ptr to expected number of receive bytes to request
+ * \param[in]    iface     Device to interact with.
+ * \param[out]   rxdata    Data received will be returned here.
+ * \param[inout] rxlength  As input, the size of the rxdata buffer.
+ *                         As output, the number of bytes received.
  * \return ATCA_SUCCESS on success, otherwise an error code.
  */
-
 ATCA_STATUS hal_i2c_receive(ATCAIface iface, uint8_t *rxdata, uint16_t *rxlength)
 {
     ATCAIfaceCfg *cfg = atgetifacecfg(iface);
     int bus = cfg->atcai2c.bus;
     int retries = cfg->rx_retries;
-    int status = !STATUS_OK;
+    int status = !ATCA_SUCCESS;
     Twihs *twihs_device = (Twihs*)(i2c_hal_data[bus]->twi_module);
+    uint16_t rxdata_max_size = *rxlength;
 
     twihs_packet_t packet = {
         .chip   = cfg->atcai2c.slave_address >> 1, // use 7-bit address
         .buffer = rxdata,
-        .length = *rxlength
+        .length = 1
     };
 
-    while (retries-- > 0 && status != STATUS_OK)
+    *rxlength = 0;
+    if (rxdata_max_size < 1)
+    {
+        return ATCA_SMALL_BUFFER;
+    }
+
+    //Read Length byte i.e. first byte from device
+    while (retries-- > 0 && status != ATCA_SUCCESS)
     {
         if (twihs_master_read(twihs_device, &packet) != TWIHS_SUCCESS)
         {
@@ -368,11 +386,37 @@ ATCA_STATUS hal_i2c_receive(ATCAIface iface, uint8_t *rxdata, uint16_t *rxlength
             status = ATCA_SUCCESS;
         }
     }
-
-    if (status != STATUS_OK)
+    if (status != ATCA_SUCCESS)
     {
-        return ATCA_COMM_FAIL;
+        return status;
     }
+    if (rxdata[0] < ATCA_RSP_SIZE_MIN)
+    {
+        return ATCA_INVALID_SIZE;
+    }
+    if (rxdata[0] > rxdata_max_size)
+    {
+        return ATCA_SMALL_BUFFER;
+    }
+
+    //Update receive length with first byte received and set to read rest of the data
+    packet.length = rxdata[0] - 1;
+    packet.buffer = &rxdata[1];
+
+    if (twihs_master_read(twihs_device, &packet) != TWIHS_SUCCESS)
+    {
+        status = ATCA_COMM_FAIL;
+    }
+    else
+    {
+        status = ATCA_SUCCESS;
+    }
+    if (status != ATCA_SUCCESS)
+    {
+        return status;
+    }
+
+    *rxlength = rxdata[0];
 
     return ATCA_SUCCESS;
 }

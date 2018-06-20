@@ -95,6 +95,34 @@ static bool StartTransfer(I2C_MODULE i2c_id, bool restart)
     return TRUE;
 }
 
+static bool Check_slave_ACK(I2C_MODULE i2c_id)
+{
+    bool status = false;
+
+    switch (i2c_id)
+    {
+    case I2C1:
+        if ((I2C1STATbits.ACKSTAT) != 1)
+        {
+            status = TRUE;
+        }
+        break;
+    case I2C3:
+        if ((I2C3STATbits.ACKSTAT) != 1)
+        {
+            status  = TRUE;
+        }
+        break;
+    default:
+        status = false;
+    }
+
+
+    return status;
+}
+
+
+
 static bool TransmitOneByte(I2C_MODULE i2c_id, uint8_t data)
 {
     // Wait for the transmitter to be ready
@@ -116,7 +144,7 @@ static bool TransmitOneByte(I2C_MODULE i2c_id, uint8_t data)
         ;
     }
 
-    return TRUE;
+    return Check_slave_ACK(i2c_id);
 }
 
 static uint8_t ReceiveOneByte(I2C_MODULE i2c_id, bool ack)
@@ -186,18 +214,20 @@ void i2c_write(I2C_MODULE i2c_id, uint8_t address, uint8_t *data, int len)
     StopTransfer(i2c_id);
 }
 
-void i2c_read(I2C_MODULE i2c_id, uint8_t address, uint8_t *data, uint16_t len)
+ATCA_STATUS i2c_read(I2C_MODULE i2c_id, uint8_t address, uint8_t *data, uint16_t len)
 {
     uint16_t i;
+    ATCA_STATUS status = !ATCA_SUCCESS;
 
     if (!StartTransfer(i2c_id, FALSE))
     {
-        return;
+        return ATCA_COMM_FAIL;
     }
 
     if (!TransmitOneByte(i2c_id, (address | 0x01)))
     {
-        return;
+        StopTransfer(i2c_id);
+        return ATCA_COMM_FAIL;
     }
 
     for (i = 0; i < len; i++)
@@ -213,6 +243,9 @@ void i2c_read(I2C_MODULE i2c_id, uint8_t address, uint8_t *data, uint16_t len)
     }
 
     StopTransfer(i2c_id);
+
+    return ATCA_SUCCESS;
+
 }
 /****************************************/
 
@@ -236,12 +269,12 @@ ATCA_STATUS hal_i2c_discover_buses(int i2c_buses[], int max_buses)
 }
 
 /** \brief discover any CryptoAuth devices on a given logical bus number.This function is currently not implemented.
- * \param[in] busNum - logical bus number on which to look for CryptoAuth devices
+ * \param[in] bus_num - logical bus number on which to look for CryptoAuth devices
  * \param[out] cfg[] - pointer to head of an array of interface config structures which get filled in by this method
  * \param[out] *found - number of devices found on this bus
  * \return ATCA_UNIMPLEMENTED
  */
-ATCA_STATUS hal_i2c_discover_devices(int busNum, ATCAIfaceCfg cfg[], int *found)
+ATCA_STATUS hal_i2c_discover_devices(int bus_num, ATCAIfaceCfg cfg[], int *found)
 {
     return ATCA_UNIMPLEMENTED;
 }
@@ -363,19 +396,53 @@ ATCA_STATUS hal_i2c_send(ATCAIface iface, uint8_t *txdata, int txlength)
 
 /**
  * \brief HAL implementation of I2C receive function for ASF I2C
- *
- * \param[in] iface     instance
- * \param[in] rxdata    pointer to space to receive the data
- * \param[in] rxlength  ptr to expected number of receive bytes to request
- *
- * \return ATCA_SUCCESS
+ * \param[in]    iface     Device to interact with.
+ * \param[out]   rxdata    Data received will be returned here.
+ * \param[inout] rxlength  As input, the size of the rxdata buffer.
+ *                         As output, the number of bytes received.
+ * \return ATCA_SUCCESS on success, otherwise an error code.
  */
 ATCA_STATUS hal_i2c_receive(ATCAIface iface, uint8_t *rxdata, uint16_t *rxlength)
 {
     ATCAIfaceCfg *cfg = atgetifacecfg(iface);
     int bus = cfg->atcai2c.bus;
+    int count;
+    int retries = 10;
+    int status = !ATCA_SUCCESS;
+    uint16_t rxdata_max_size = *rxlength;
 
-    i2c_read(i2c_hal_data[bus]->id, cfg->atcai2c.slave_address, rxdata, *rxlength);
+    *rxlength = 0;
+    if (rxdata_max_size < 1)
+    {
+        return ATCA_SMALL_BUFFER;
+    }
+
+    while (retries-- > 0 && status != ATCA_SUCCESS)
+    {
+        status = i2c_read(i2c_hal_data[bus]->id, cfg->atcai2c.slave_address, rxdata, 1);
+    }
+
+    if (status != ATCA_SUCCESS)
+    {
+        return ATCA_COMM_FAIL;
+    }
+    if (rxdata[0] < ATCA_RSP_SIZE_MIN)
+    {
+        return ATCA_INVALID_SIZE;
+    }
+    if (rxdata[0] > rxdata_max_size)
+    {
+        return ATCA_SMALL_BUFFER;
+    }
+
+    count  = rxdata[0] - 1;
+    status = i2c_read(i2c_hal_data[bus]->id, cfg->atcai2c.slave_address, &rxdata[1], count);
+    if (status != ATCA_SUCCESS)
+    {
+        return ATCA_COMM_FAIL;
+    }
+
+    *rxlength = rxdata[0];
 
     return ATCA_SUCCESS;
 }

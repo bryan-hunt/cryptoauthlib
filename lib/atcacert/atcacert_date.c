@@ -29,9 +29,17 @@
  * TERMS.
  */
 
-
-#include "atcacert_date.h"
 #include <string.h>
+#include "atcacert_date.h"
+
+
+const size_t ATCACERT_DATE_FORMAT_SIZES[ATCACERT_DATE_FORMAT_SIZES_COUNT] = {
+    DATEFMT_ISO8601_SEP_SIZE,
+    DATEFMT_RFC5280_UTC_SIZE,
+    DATEFMT_POSIX_UINT32_BE_SIZE,
+    DATEFMT_POSIX_UINT32_LE_SIZE,
+    DATEFMT_RFC5280_GEN_SIZE
+};
 
 int atcacert_date_enc(atcacert_date_format_t   format,
                       const atcacert_tm_utc_t* timestamp,

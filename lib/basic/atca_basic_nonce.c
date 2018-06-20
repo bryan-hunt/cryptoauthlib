@@ -102,7 +102,7 @@ ATCA_STATUS atcab_nonce_base(uint8_t mode, uint16_t zero, const uint8_t *num_in,
             break;
         }
 
-        if ((rand_out != NULL) && (packet.rxsize >= 35))
+        if ((rand_out != NULL) && (packet.data[ATCA_COUNT_IDX] >= 35))
         {
             memcpy(&rand_out[0], &packet.data[ATCA_RSP_DATA_IDX], 32);
         }

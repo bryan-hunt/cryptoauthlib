@@ -29,11 +29,6 @@
  * TERMS.
  */
 
-#include "atca_hal.h"
-#include "kit_phy.h"
-#include "hal_linux_kit_cdc.h"
-#include "kit_protocol.h"
-
 #include <stdio.h>
 #include <string.h>
 #include <termios.h>
@@ -41,6 +36,11 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+
+#include "atca_hal.h"
+#include "kit_phy.h"
+#include "hal_linux_kit_cdc.h"
+#include "kit_protocol.h"
 
 /** \defgroup hal_ Hardware abstraction layer (hal_)
  *
@@ -79,13 +79,13 @@ ATCA_STATUS hal_cdc_discover_buses(int cdc_buses[], int max_buses)
 }
 
 /** \brief discover any CryptoAuth devices on a given logical bus number
- * \param[in] busNum - logical bus number on which to look for CryptoAuth devices
+ * \param[in] bus_num - logical bus number on which to look for CryptoAuth devices
  * \param[out] cfg[] - pointer to head of an array of interface config structures which get filled in by this method
  * \param[out] *found - number of devices found on this bus
  * \return ATCA_SUCCESS on success, otherwise an error code.
  */
 
-ATCA_STATUS hal_cdc_discover_devices(int busNum, ATCAIfaceCfg cfg[], int *found)
+ATCA_STATUS hal_cdc_discover_devices(int bus_num, ATCAIfaceCfg cfg[], int *found)
 {
     return ATCA_UNIMPLEMENTED;
 }
@@ -283,9 +283,9 @@ ATCA_STATUS kit_phy_receive(ATCAIface iface, char* rxdata, int* rxsize)
             }
             // Protect rxdata from overwriting, this will have the result of truncating the returned bytes
             // Remaining space in rxdata
-            bytes_remain = (*rxsize - total_bytes);
+            //bytes_remain = (*rxsize - total_bytes);
             // Use the minimum between number of bytes read and remaining space
-            bytes_to_cpy = min(bytes_remain, bytes_to_cpy);
+            //bytes_to_cpy = min(bytes_remain, bytes_to_cpy);
 
             // Copy the received data
             memcpy(&rxdata[total_bytes], &buffer[0], bytes_to_cpy);
@@ -325,9 +325,10 @@ ATCA_STATUS hal_kit_cdc_send(ATCAIface iface, uint8_t* txdata, int txlength)
 }
 
 /** \brief HAL implementation of kit protocol receive over USB CDC
- * \param[in]    iface   instance
- * \param[in]    rxdata  pointer to space to receive the data
- * \param[inout] rxsize  ptr to expected number of receive bytes to request
+ * \param[in]    iface   Device to interact with.
+ * \param[out]   rxdata  Data received will be returned here.
+ * \param[inout] rxsize  As input, the size of the rxdata buffer.
+ *                       As output, the number of bytes received.
  * \return ATCA_SUCCESS on success, otherwise an error code.
  */
 ATCA_STATUS hal_kit_cdc_receive(ATCAIface iface, uint8_t* rxdata, uint16_t* rxsize)
@@ -413,13 +414,13 @@ ATCA_STATUS hal_kit_cdc_discover_buses(int cdc_buses[], int max_buses)
 }
 
 /** \brief discover any CryptoAuth devices on a given logical bus number
- * \param[in] busNum - logical bus number on which to look for CryptoAuth devices
+ * \param[in] bus_num - logical bus number on which to look for CryptoAuth devices
  * \param[out] cfg[] - pointer to head of an array of interface config structures which get filled in by this method
  * \param[out] *found - number of devices found on this bus
  * \return ATCA_SUCCESS on success, otherwise an error code.
  */
 
-ATCA_STATUS hal_kit_cdc_discover_devices(int busNum, ATCAIfaceCfg *cfg, int *found)
+ATCA_STATUS hal_kit_cdc_discover_devices(int bus_num, ATCAIfaceCfg *cfg, int *found)
 {
     // TODO: Implement
     *found = 0;

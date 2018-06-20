@@ -108,7 +108,7 @@ ATCA_STATUS atcab_sha_base(uint8_t mode, uint16_t length, const uint8_t* message
             break;
         }
 
-        if ((data_out != NULL) && (packet.rxsize > 4))
+        if ((data_out != NULL) && (packet.data[ATCA_COUNT_IDX] > 4))
         {
             if (packet.data[ATCA_COUNT_IDX] - ATCA_PACKET_OVERHEAD > *data_out_size)
             {

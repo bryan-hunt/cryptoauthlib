@@ -76,12 +76,12 @@ ATCA_STATUS atcab_ecdh_base(uint8_t mode, uint16_t key_id, const uint8_t* public
             break;
         }
 
-        if (pms != NULL && packet.rxsize >= (3 + ATCA_KEY_SIZE))
+        if (pms != NULL && packet.data[ATCA_COUNT_IDX] >= (3 + ATCA_KEY_SIZE))
         {
             memcpy(pms, &packet.data[ATCA_RSP_DATA_IDX], ATCA_KEY_SIZE);
         }
 
-        if (out_nonce != NULL && packet.rxsize >= (3 + ATCA_KEY_SIZE * 2))
+        if (out_nonce != NULL && packet.data[ATCA_COUNT_IDX] >= (3 + ATCA_KEY_SIZE * 2))
         {
             memcpy(out_nonce, &packet.data[ATCA_RSP_DATA_IDX + ATCA_KEY_SIZE], ATCA_KEY_SIZE);
         }

@@ -65,13 +65,13 @@ ATCA_STATUS hal_swi_discover_buses(int swi_buses[], int max_buses)
 }
 
 /** \brief discover any CryptoAuth devices on a given logical bus number.This function is curently not supported.
- * \param[in] busNum - logical bus number on which to look for CryptoAuth devices
+ * \param[in] bus_num - logical bus number on which to look for CryptoAuth devices
  * \param[out] cfg[] - pointer to head of an array of interface config structures which get filled in by this method
  * \param[out] *found - number of devices found on this bus
  * \return ATCA_UNIMPLEMENTED
  */
 
-ATCA_STATUS hal_swi_discover_devices(int busNum, ATCAIfaceCfg cfg[], int *found)
+ATCA_STATUS hal_swi_discover_devices(int bus_num, ATCAIfaceCfg cfg[], int *found)
 {
     return ATCA_UNIMPLEMENTED;
 
@@ -186,24 +186,25 @@ ATCA_STATUS hal_swi_send(ATCAIface iface, uint8_t *txdata, int txlength)
 
 /**
  * \brief Receive byte(s) via SWI.
- *
- * \param[in]  iface     interface of the logical device to receive data
- *                      from
- * \param[out] rxdata    pointer to where bytes will be received
- * \param[in]  rxlength  pointer to expected number of receive bytes to
- *                      request
- *
+ * \param[in]    iface     Device to interact with.
+ * \param[out]   rxdata    Data received will be returned here.
+ * \param[inout] rxlength  As input, the size of the rxdata buffer.
+ *                         As output, the number of bytes received.
  * \return ATCA_SUCCESS on success, otherwise an error code.
  */
 ATCA_STATUS hal_swi_receive(ATCAIface iface, uint8_t *rxdata, uint16_t *rxlength)
 {
     ATCAIfaceCfg *cfg = atgetifacecfg(iface);
-
-    ATCA_STATUS status = ATCA_RX_TIMEOUT;
-
+    ATCA_STATUS status = !ATCA_SUCCESS;
     int bus     = cfg->atcaswi.bus;
     int retries = cfg->rx_retries;
-    uint16_t count;
+    uint16_t rxdata_max_size = *rxlength;
+
+    *rxlength = 0;
+    if (rxdata_max_size < 1)
+    {
+        return ATCA_SMALL_BUFFER;
+    }
 
     //! Set SWI pin
     swi_set_pin(swi_hal_data[bus]->pin_sda);
@@ -211,28 +212,30 @@ ATCA_STATUS hal_swi_receive(ATCAIface iface, uint8_t *rxdata, uint16_t *rxlength
     while (retries-- > 0 && status != ATCA_SUCCESS)
     {
         swi_send_byte(SWI_FLAG_TX);
-
-        status = swi_receive_bytes(*rxlength, rxdata);
-        if (status == ATCA_RX_FAIL)
-        {
-            count = rxdata[0];
-            if ((count < ATCA_RSP_SIZE_MIN) || (count > *rxlength))
-            {
-                status = ATCA_INVALID_SIZE;
-                break;
-            }
-            else
-            {
-                status = ATCA_SUCCESS;
-            }
-        }
-        else if (status == ATCA_RX_TIMEOUT)
-        {
-            status = ATCA_RX_NO_RESPONSE;
-        }
+        status = swi_receive_bytes(1, rxdata);
+    }
+    if (status != ATCA_SUCCESS)
+    {
+        return status;
+    }
+    if (rxdata[0] < ATCA_RSP_SIZE_MIN)
+    {
+        return ATCA_INVALID_SIZE;
+    }
+    if (rxdata[0] > rxdata_max_size)
+    {
+        return ATCA_SMALL_BUFFER;
     }
 
-    return status;
+    status = swi_receive_bytes(rxdata[0], &rxdata[1]);
+    if (status != ATCA_SUCCESS)
+    {
+        return status;
+    }
+
+    *rxlength = rxdata[0];
+
+    return ATCA_SUCCESS;
 }
 
 /**

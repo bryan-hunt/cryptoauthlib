@@ -110,6 +110,7 @@ typedef enum atcacert_std_cert_element_e
 } atcacert_std_cert_element_t;
 
 // Some of these structures may need to be byte-accurate
+
 #pragma pack(push, 1)
 
 /**
@@ -168,6 +169,7 @@ typedef struct atcacert_def_s
     uint8_t                        cert_elements_count;                     //!< Number of additional certificate elements in cert_elements.
     const uint8_t*                 cert_template;                           //!< Pointer to the actual certificate template data.
     uint16_t                       cert_template_size;                      //!< Size of the certificate template in cert_template in bytes.
+    struct atcacert_def_s*         ca_cert_def;                             //!< Certificate definition of the CA certificate
 } atcacert_def_t;
 
 /**
@@ -207,7 +209,7 @@ extern "C" {
  * \param[in]    block_size             Block size to align all offsets and counts to when adding
  *                                      device locations.
  *
- * \return On successful execution it returns ATCACERT_E_SUCCESS otherwise it returns error code.
+ * \return ATCACERT_E_SUCCESS on success, otherwise an error code.
  */
 int atcacert_get_device_locs(const atcacert_def_t*  cert_def,
                              atcacert_device_loc_t* device_locs,
@@ -228,9 +230,9 @@ int atcacert_get_device_locs(const atcacert_def_t*  cert_def,
  * \param[in]  ca_public_key  ECC P256 public key of the certificate authority (issuer) for the
  *                            certificate being built. Set to NULL if the authority key id is
  *                            not needed, set properly in the cert_def template, or stored on the
- *                            device as specifed in the cert_def cert_elements.
+ *                            device as specified in the cert_def cert_elements.
  *
- * \return On successful execution it returns ATCACERT_E_SUCCESS otherwise it returns error code.
+ * \return ATCACERT_E_SUCCESS on success, otherwise an error code.
  */
 int atcacert_cert_build_start(atcacert_build_state_t* build_state,
                               const atcacert_def_t*   cert_def,
@@ -248,7 +250,7 @@ int atcacert_cert_build_start(atcacert_build_state_t* build_state,
  * \param[in] device_data  Actual data from the device. It should represent the offset and byte
  *                         count specified in the device_loc parameter.
  *
- * \return On successful execution it returns ATCACERT_E_SUCCESS otherwise it returns error code.
+ * \return ATCACERT_E_SUCCESS on success, otherwise an error code.
  */
 int atcacert_cert_build_process(atcacert_build_state_t*      build_state,
                                 const atcacert_device_loc_t* device_loc,
@@ -264,7 +266,7 @@ int atcacert_cert_build_process(atcacert_build_state_t*      build_state,
  *
  * \param[in] build_state  Current certificate build state.
  *
- * \return On successful execution it returns ATCACERT_E_SUCCESS otherwise it returns error code.
+ * \return ATCACERT_E_SUCCESS on success, otherwise an error code.
  */
 int atcacert_cert_build_finish(atcacert_build_state_t* build_state);
 
@@ -283,7 +285,7 @@ int atcacert_cert_build_finish(atcacert_build_state_t* build_state);
  * \param[out] device_data  Buffer that represents the device data in device_loc. Required to be
  *                          at least device_loc.count in size.
  *
- * \return On successful execution it returns ATCACERT_E_SUCCESS otherwise it returns error code.
+ * \return ATCACERT_E_SUCCESS on success, otherwise an error code.
  */
 int atcacert_get_device_data(const atcacert_def_t*        cert_def,
                              const uint8_t*               cert,
@@ -299,7 +301,7 @@ int atcacert_get_device_data(const atcacert_def_t*        cert_def,
  * \param[in]    cert_size        Size of the certificate (cert) in bytes.
  * \param[in]    subj_public_key  Subject public key as X and Y integers concatenated together. 64 bytes.
  *
- * \return On successful execution it returns ATCACERT_E_SUCCESS otherwise it returns error code.
+ * \return ATCACERT_E_SUCCESS on success, otherwise an error code.
  */
 int atcacert_set_subj_public_key(const atcacert_def_t* cert_def,
                                  uint8_t*              cert,
@@ -315,7 +317,7 @@ int atcacert_set_subj_public_key(const atcacert_def_t* cert_def,
  * \param[out] subj_public_key  Subject public key is returned in this buffer. Formatted at X and Y
  *                              integers concatenated together. 64 bytes.
  *
- * \return On successful execution it returns ATCACERT_E_SUCCESS otherwise it returns error code.
+ * \return ATCACERT_E_SUCCESS on success, otherwise an error code.
  */
 int atcacert_get_subj_public_key(const atcacert_def_t * cert_def,
                                  const uint8_t *        cert,
@@ -330,7 +332,7 @@ int atcacert_get_subj_public_key(const atcacert_def_t * cert_def,
  * \param[in]  cert_size    Size of the certificate (cert) in bytes.
  * \param[out] subj_key_id  Subject key ID is returned in this buffer. 20 bytes.
  *
- * \return On successful execution it returns ATCACERT_E_SUCCESS otherwise it returns error code.
+ * \return ATCACERT_E_SUCCESS on success, otherwise an error code.
  */
 int atcacert_get_subj_key_id(const atcacert_def_t * cert_def,
                              const uint8_t *        cert,
@@ -347,7 +349,7 @@ int atcacert_get_subj_key_id(const atcacert_def_t * cert_def,
  * \param[in]    max_cert_size  Maximum size of the cert buffer.
  * \param[in]    signature      Signature as R and S integers concatenated together. 64 bytes.
  *
- * \return On successful execution it returns ATCACERT_E_SUCCESS otherwise it returns error code.
+ * \return ATCACERT_E_SUCCESS on success, otherwise an error code.
  */
 int atcacert_set_signature(const atcacert_def_t* cert_def,
                            uint8_t*              cert,
@@ -364,7 +366,7 @@ int atcacert_set_signature(const atcacert_def_t* cert_def,
  * \param[out] signature  Signature is returned in this buffer. Formatted at R and S integers
  *                        concatenated together. 64 bytes.
  *
- * \return On successful execution it returns ATCACERT_E_SUCCESS otherwise it returns error code.
+ * \return ATCACERT_E_SUCCESS on success, otherwise an error code.
  */
 int atcacert_get_signature(const atcacert_def_t * cert_def,
                            const uint8_t *        cert,
@@ -380,7 +382,7 @@ int atcacert_get_signature(const atcacert_def_t * cert_def,
  * \param[in]    cert_size  Size of the certificate (cert) in bytes.
  * \param[in]    timestamp  Issue date.
  *
- * \return On successful execution it returns ATCACERT_E_SUCCESS otherwise it returns error code.
+ * \return ATCACERT_E_SUCCESS on success, otherwise an error code.
  */
 int atcacert_set_issue_date(const atcacert_def_t*    cert_def,
                             uint8_t*                 cert,
@@ -396,7 +398,7 @@ int atcacert_set_issue_date(const atcacert_def_t*    cert_def,
  * \param[in]  cert_size  Size of the certificate (cert) in bytes.
  * \param[out] timestamp  Issue date is returned in this structure.
  *
- * \return On successful execution it returns ATCACERT_E_SUCCESS otherwise it returns error code.
+ * \return ATCACERT_E_SUCCESS on success, otherwise an error code.
  */
 int atcacert_get_issue_date(const atcacert_def_t* cert_def,
                             const uint8_t*        cert,
@@ -412,7 +414,7 @@ int atcacert_get_issue_date(const atcacert_def_t* cert_def,
  * \param[in]    cert_size  Size of the certificate (cert) in bytes.
  * \param[in]    timestamp  Expire date.
  *
- * \return On successful execution it returns ATCACERT_E_SUCCESS otherwise it returns error code.
+ * \return ATCACERT_E_SUCCESS on success, otherwise an error code.
  */
 int atcacert_set_expire_date(const atcacert_def_t*    cert_def,
                              uint8_t*                 cert,
@@ -428,7 +430,7 @@ int atcacert_set_expire_date(const atcacert_def_t*    cert_def,
  * \param[in]  cert_size  Size of the certificate (cert) in bytes.
  * \param[out] timestamp  Expire date is returned in this structure.
  *
- * \return On successful execution it returns ATCACERT_E_SUCCESS otherwise it returns error code.
+ * \return ATCACERT_E_SUCCESS on success, otherwise an error code.
  */
 int atcacert_get_expire_date(const atcacert_def_t* cert_def,
                              const uint8_t*        cert,
@@ -443,7 +445,7 @@ int atcacert_get_expire_date(const atcacert_def_t* cert_def,
  * \param[in]    cert_size  Size of the certificate (cert) in bytes.
  * \param[in]    signer_id  Signer ID.
  *
- * \return On successful execution it returns ATCACERT_E_SUCCESS otherwise it returns error code.
+ * \return ATCACERT_E_SUCCESS on success, otherwise an error code.
  */
 int atcacert_set_signer_id(const atcacert_def_t* cert_def,
                            uint8_t*              cert,
@@ -458,7 +460,7 @@ int atcacert_set_signer_id(const atcacert_def_t* cert_def,
  * \param[in]  cert_size  Size of the certificate (cert) in bytes.
  * \param[out] signer_id  Signer ID will be returned in this buffer. 2 bytes.
  *
- * \return On successful execution it returns ATCACERT_E_SUCCESS otherwise it returns error code.
+ * \return ATCACERT_E_SUCCESS on success, otherwise an error code.
  */
 int atcacert_get_signer_id(const atcacert_def_t * cert_def,
                            const uint8_t *        cert,
@@ -475,7 +477,7 @@ int atcacert_get_signer_id(const atcacert_def_t * cert_def,
  * \param[in]    cert_sn       Certificate serial number.
  * \param[in]    cert_sn_size  Size of the certificate serial number in bytes.
  *
- * \return On successful execution it returns ATCACERT_E_SUCCESS otherwise it returns error code.
+ * \return ATCACERT_E_SUCCESS on success, otherwise an error code.
  */
 int atcacert_set_cert_sn(const atcacert_def_t* cert_def,
                          uint8_t*              cert,
@@ -499,7 +501,7 @@ int atcacert_set_cert_sn(const atcacert_def_t* cert_def,
  * \param[in]    device_sn     Device serial number, only used if required by the sn_source scheme.
  *                             Can be set to NULL, if not required.
  *
- * \return On successful execution it returns ATCACERT_E_SUCCESS otherwise it returns error code.
+ * \return ATCACERT_E_SUCCESS on success, otherwise an error code.
  */
 int atcacert_gen_cert_sn(const atcacert_def_t* cert_def,
                          uint8_t*              cert,
@@ -516,7 +518,7 @@ int atcacert_gen_cert_sn(const atcacert_def_t* cert_def,
  * \param[inout] cert_sn_size  As input, the size of the cert_sn buffer.
  *                             As output, the size of the certificate SN (cert_sn) in bytes.
  *
- * \return On successful execution it returns ATCACERT_E_SUCCESS otherwise it returns error code.
+ * \return ATCACERT_E_SUCCESS on success, otherwise an error code.
  */
 int atcacert_get_cert_sn(const atcacert_def_t* cert_def,
                          const uint8_t*        cert,
@@ -534,7 +536,7 @@ int atcacert_get_cert_sn(const atcacert_def_t* cert_def,
  * \param[in]    auth_public_key  Authority public key as X and Y integers concatenated together.
  *                                64 bytes.
  *
- * \return On successful execution it returns ATCACERT_E_SUCCESS otherwise it returns error code.
+ * \return ATCACERT_E_SUCCESS on success, otherwise an error code.
  */
 int atcacert_set_auth_key_id(const atcacert_def_t* cert_def,
                              uint8_t*              cert,
@@ -549,7 +551,7 @@ int atcacert_set_auth_key_id(const atcacert_def_t* cert_def,
  * \param[in]    cert_size        Size of the certificate (cert) in bytes.
  * \param[in]    auth_key_id      Authority key ID. Same size as defined in the cert_def.
  *
- * \return On successful execution it returns ATCACERT_E_SUCCESS otherwise it returns error code.
+ * \return ATCACERT_E_SUCCESS on success, otherwise an error code.
  */
 int atcacert_set_auth_key_id_raw(const atcacert_def_t* cert_def,
                                  uint8_t*              cert,
@@ -564,7 +566,7 @@ int atcacert_set_auth_key_id_raw(const atcacert_def_t* cert_def,
  * \param[in]  cert_size    Size of the certificate (cert) in bytes.
  * \param[out] auth_key_id  Authority key ID is returned in this buffer. 20 bytes.
  *
- * \return On successful execution it returns ATCACERT_E_SUCCESS otherwise it returns error code.
+ * \return ATCACERT_E_SUCCESS on success, otherwise an error code.
  */
 int atcacert_get_auth_key_id(const atcacert_def_t * cert_def,
                              const uint8_t *        cert,
@@ -600,7 +602,7 @@ int atcacert_set_comp_cert(const atcacert_def_t* cert_def,
  * \param[in]  cert_size    Size of the certificate (cert) in bytes.
  * \param[out] comp_cert    Compressed certificate is returned in this buffer. 72 bytes.
  *
- * \return On successful execution it returns ATCACERT_E_SUCCESS otherwise it returns error code.
+ * \return ATCACERT_E_SUCCESS on success, otherwise an error code.
  */
 int atcacert_get_comp_cert(const atcacert_def_t * cert_def,
                            const uint8_t *        cert,
@@ -616,7 +618,7 @@ int atcacert_get_comp_cert(const atcacert_def_t * cert_def,
  * \param[out] tbs        Pointer to a const pointer that will be set the start of the TBS data.
  * \param[out] tbs_size   Size of the TBS data will be returned here.
  *
- * \return On successful execution it returns ATCACERT_E_SUCCESS otherwise it returns error code.
+ * \return ATCACERT_E_SUCCESS on success, otherwise an error code.
  */
 int atcacert_get_tbs(const atcacert_def_t* cert_def,
                      const uint8_t*        cert,
@@ -632,7 +634,7 @@ int atcacert_get_tbs(const atcacert_def_t* cert_def,
  * \param[in]  cert_size   Size of the certificate (cert) in bytes.
  * \param[out] tbs_digest  TBS data digest will be returned here. 32 bytes.
  *
- * \return On successful execution it returns ATCACERT_E_SUCCESS otherwise it returns error code.
+ * \return ATCACERT_E_SUCCESS on success, otherwise an error code.
  */
 int atcacert_get_tbs_digest(const atcacert_def_t * cert_def,
                             const uint8_t *        cert,
@@ -650,7 +652,7 @@ int atcacert_get_tbs_digest(const atcacert_def_t * cert_def,
  *                              cert_loc.count bytes to be copied into the certificate.
  * \param[in]    data_size      Size of the data in bytes.
  *
- * \return On successful execution it returns ATCACERT_E_SUCCESS otherwise it returns error code.
+ * \return ATCACERT_E_SUCCESS on success, otherwise an error code.
  */
 int atcacert_set_cert_element(const atcacert_def_t*      cert_def,
                               const atcacert_cert_loc_t* cert_loc,
@@ -670,7 +672,7 @@ int atcacert_set_cert_element(const atcacert_def_t*      cert_def,
  *                          enough to hold cert_loc.count bytes.
  * \param[in]    data_size  Expected size of the cert element data.
  *
- * \return On successful execution it returns ATCACERT_E_SUCCESS otherwise it returns error code.
+ * \return ATCACERT_E_SUCCESS on success, otherwise an error code.
  */
 int atcacert_get_cert_element(const atcacert_def_t*      cert_def,
                               const atcacert_cert_loc_t* cert_loc,
@@ -694,7 +696,7 @@ int atcacert_get_cert_element(const atcacert_def_t*      cert_def,
  *                        Y integers concatenated together. 64 bytes.
  * \param[in] key_id      Calculated key ID will be returned in this buffer. 20 bytes.
  *
- * \return On successful execution it returns ATCACERT_E_SUCCESS otherwise it returns error code.
+ * \return ATCACERT_E_SUCCESS on success, otherwise an error code.
  */
 int atcacert_get_key_id(const uint8_t public_key[64], uint8_t key_id[20]);
 
@@ -718,7 +720,7 @@ int atcacert_get_key_id(const uint8_t public_key[64], uint8_t key_id[20]);
  * \param[in]    block_size             Block size to align all offsets and counts to when adding
  *                                      device location.
  *
- * \return On successful execution it returns ATCACERT_E_SUCCESS otherwise it returns error code.
+ * \return ATCACERT_E_SUCCESS on success, otherwise an error code.
  */
 int atcacert_merge_device_loc(atcacert_device_loc_t*       device_locs,
                               size_t*                      device_locs_count,
@@ -738,7 +740,7 @@ int atcacert_is_device_loc_overlap(const atcacert_device_loc_t* device_loc1,
  * \param[out] padded_key  Padded key is returned in this buffer. X and Y integers are padded
  *                         with 4 bytes of 0 in the MSB. 72 bytes.
  *
- * \return On successful execution it returns ATCACERT_E_SUCCESS otherwise it returns error code.
+ * \return ATCACERT_E_SUCCESS on success, otherwise an error code.
  */
 void atcacert_public_key_add_padding(const uint8_t raw_key[64], uint8_t padded_key[72]);
 
@@ -750,7 +752,7 @@ void atcacert_public_key_add_padding(const uint8_t raw_key[64], uint8_t padded_k
  * \param[in]  raw_key     Raw key is returned in this buffer. Public key as X and Y integers
  *                         concatenated together. 64 bytes.
  *
- * \return On successful execution it returns ATCACERT_E_SUCCESS otherwise it returns error code.
+ * \return ATCACERT_E_SUCCESS on success, otherwise an error code.
  */
 void atcacert_public_key_remove_padding(const uint8_t padded_key[72], uint8_t raw_key[64]);
 
@@ -760,3 +762,4 @@ void atcacert_public_key_remove_padding(const uint8_t padded_key[72], uint8_t ra
 #endif
 
 #endif
+

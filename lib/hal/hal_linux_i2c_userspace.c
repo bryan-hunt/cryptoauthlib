@@ -29,9 +29,6 @@
  * TERMS.
  */
 
-#include "atca_hal.h"
-#include "hal_linux_i2c_userspace.h"
-
 #include <linux/i2c-dev.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
@@ -44,6 +41,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "atca_hal.h"
+#include "hal_linux_i2c_userspace.h"
 
 /** \defgroup hal_ Hardware abstraction layer (hal_)
  *
@@ -70,13 +69,13 @@ ATCA_STATUS hal_i2c_discover_buses(int i2c_buses[], int max_buses)
 }
 
 /** \brief discover any CryptoAuth devices on a given logical bus number
- * \param[in]  busNum  logical bus number on which to look for CryptoAuth devices
+ * \param[in]  bus_num  logical bus number on which to look for CryptoAuth devices
  * \param[out] cfg     pointer to head of an array of interface config structures which get filled in by this method
  * \param[out] found   number of devices found on this bus
  * \return ATCA_UNIMPLEMENTED
  */
 
-ATCA_STATUS hal_i2c_discover_devices(int busNum, ATCAIfaceCfg cfg[], int *found)
+ATCA_STATUS hal_i2c_discover_devices(int bus_num, ATCAIfaceCfg cfg[], int *found)
 {
     return ATCA_UNIMPLEMENTED;
 }
@@ -194,17 +193,25 @@ ATCA_STATUS hal_i2c_send(ATCAIface iface, uint8_t *txdata, int txlength)
 }
 
 /** \brief HAL implementation of I2C receive function
- * \param[in] iface     instance
- * \param[in] rxdata    pointer to space to receive the data
- * \param[in] rxlength  ptr to expected number of receive bytes to request
+ * \param[in]    iface     Device to interact with.
+ * \param[out]   rxdata    Data received will be returned here.
+ * \param[inout] rxlength  As input, the size of the rxdata buffer.
+ *                         As output, the number of bytes received.
  * \return ATCA_SUCCESS on success, otherwise an error code.
  */
-
 ATCA_STATUS hal_i2c_receive(ATCAIface iface, uint8_t *rxdata, uint16_t *rxlength)
 {
     ATCAIfaceCfg *cfg = atgetifacecfg(iface);
     int bus = cfg->atcai2c.bus;
     int f_i2c;  // I2C file descriptor
+    uint16_t count;
+    uint16_t rxdata_max_size = *rxlength;
+
+    *rxlength = 0;
+    if (rxdata_max_size < 1)
+    {
+        return ATCA_SMALL_BUFFER;
+    }
 
     // Initiate I2C communication
     if ( (f_i2c = open(i2c_hal_data[bus]->i2c_file, O_RDWR)) < 0)
@@ -219,12 +226,32 @@ ATCA_STATUS hal_i2c_receive(ATCAIface iface, uint8_t *rxdata, uint16_t *rxlength
         return ATCA_COMM_FAIL;
     }
 
-    // Receive data
-    if (read(f_i2c, rxdata, *rxlength) != *rxlength)
+    // Receive count
+    count = 1;
+    if (read(f_i2c, rxdata, count) != count)
     {
         close(f_i2c);
         return ATCA_COMM_FAIL;
     }
+
+    if (rxdata[0] < ATCA_RSP_SIZE_MIN)
+    {
+        return ATCA_INVALID_SIZE;
+    }
+    if (rxdata[0] > rxdata_max_size)
+    {
+        return ATCA_SMALL_BUFFER;
+    }
+
+    count = rxdata[0] - 1;
+    // Receive data
+    if (read(f_i2c, &rxdata[1], count) != count)
+    {
+        close(f_i2c);
+        return ATCA_COMM_FAIL;
+    }
+
+    *rxlength = rxdata[0];
 
     close(f_i2c);
     return ATCA_SUCCESS;

@@ -290,6 +290,7 @@ ATCA_STATUS atca_execute_command(ATCAPacket* packet, ATCADevice device)
     ATCA_STATUS status;
     uint32_t execution_or_wait_time;
     uint32_t max_delay_count;
+    uint16_t rxsize;
 
     do
     {
@@ -321,8 +322,10 @@ ATCA_STATUS atca_execute_command(ATCAPacket* packet, ATCADevice device)
 
         do
         {
+            memset(packet->data, 0, sizeof(packet->data));
             // receive the response
-            if ((status = atreceive(device->mIface, packet->data, &(packet->rxsize))) == ATCA_SUCCESS)
+            rxsize = sizeof(packet->data);
+            if ((status = atreceive(device->mIface, packet->data, &rxsize)) == ATCA_SUCCESS)
             {
                 break;
             }
@@ -333,11 +336,15 @@ ATCA_STATUS atca_execute_command(ATCAPacket* packet, ATCADevice device)
 #endif
         }
         while (max_delay_count-- > 0);
+        if (status != ATCA_SUCCESS)
+        {
+            break;
+        }
 
         // Check response size
-        if (packet->rxsize < 4)
+        if (rxsize < 4)
         {
-            if (packet->rxsize > 0)
+            if (rxsize > 0)
             {
                 status = ATCA_RX_FAIL;
             }

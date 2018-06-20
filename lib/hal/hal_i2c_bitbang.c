@@ -71,17 +71,23 @@ ATCA_STATUS hal_i2c_discover_buses(int i2c_buses[], int max_buses)
 
 
 /** \brief discover any CryptoAuth devices on a given logical bus number
- * \param[in] busNum - logical bus number on which to look for CryptoAuth devices
+ * \param[in] bus_num - logical bus number on which to look for CryptoAuth devices
  * \param[out] cfg[] - pointer to head of an array of interface config structures which get filled in by this method
  * \param[out] *found - number of devices found on this bus
  * \return ATCA_SUCCESS on success, otherwise an error code.
  */
 
-ATCA_STATUS hal_i2c_discover_devices(int busNum, ATCAIfaceCfg cfg[], int *found)
+ATCA_STATUS hal_i2c_discover_devices(int bus_num, ATCAIfaceCfg cfg[], int *found)
 {
     ATCAIfaceCfg *head = cfg;
     uint8_t slaveAddress = 0x01;
     ATCADevice device;
+
+#ifdef ATCA_INTERFACE_V2
+    struct atca_device disc_device;
+    struct atca_command disc_command;
+    struct atca_iface disc_iface;
+#endif
     ATCAPacket packet;
     ATCA_STATUS status;
     uint8_t revs608[][4] = { { 0x00, 0x00, 0x60, 0x01 }, { 0x00, 0x00, 0x60, 0x02 } };
@@ -95,7 +101,7 @@ ATCA_STATUS hal_i2c_discover_devices(int busNum, ATCAIfaceCfg cfg[], int *found)
         .iface_type             = ATCA_I2C_IFACE,
         .devtype                = ATECC508A,
         .atcai2c.slave_address  = 0x07,
-        .atcai2c.bus            = busNum,
+        .atcai2c.bus            = bus_num,
         .atcai2c.baud           = 400000,
         //.atcai2c.baud = 100000,
         .wake_delay             = 800,
@@ -104,13 +110,17 @@ ATCA_STATUS hal_i2c_discover_devices(int busNum, ATCAIfaceCfg cfg[], int *found)
 
     ATCAHAL_t hal;
 
-    if (busNum < 0)
+    if (bus_num < 0)
     {
         return ATCA_COMM_FAIL;
     }
 
     hal_i2c_init(&hal, &discoverCfg);
+#ifdef ATCA_INTERFACE_V2
+    device = newATCADevice_v2(&discoverCfg, &disc_device, &disc_command, &disc_iface);
+#else
     device = newATCADevice(&discoverCfg);
+#endif
 
     // iterate through all addresses on given i2c bus
     // all valid 7-bit addresses go from 0x07 to 0x78
@@ -335,25 +345,26 @@ ATCA_STATUS hal_i2c_send(ATCAIface iface, uint8_t *txdata, int txlength)
 }
 
 /**
- * \brief HAL implementation of Receive byte(s) via I2C.
- *
- * \param[in] iface     interface of the logical device to receive data
- *                      from
- * \param[in] rxdata    pointer to where bytes will be received
- * \param[in] rxlength  pointer to expected number of receive bytes to
- *                      request
- *
+ * \brief HAL implementation of receive bytes via I2C bit-banged.
+ * \param[in]    iface     Device to interact with.
+ * \param[out]   rxdata    Data received will be returned here.
+ * \param[inout] rxlength  As input, the size of the rxdata buffer.
+ *                         As output, the number of bytes received.
  * \return ATCA_SUCCESS on success, otherwise an error code.
  */
 ATCA_STATUS hal_i2c_receive(ATCAIface iface, uint8_t *rxdata, uint16_t *rxlength)
 {
     ATCAIfaceCfg *cfg = atgetifacecfg(iface);
-
-    ATCA_STATUS status = ATCA_RX_TIMEOUT;
-
+    ATCA_STATUS status = !ATCA_SUCCESS;
     int bus     = cfg->atcai2c.bus;
     int retries = cfg->rx_retries;
-    uint8_t count;
+    uint16_t rxdata_max_size = *rxlength;
+
+    *rxlength = 0;
+    if (rxdata_max_size < 1)
+    {
+        return ATCA_SMALL_BUFFER;
+    }
 
     // Set I2C pins
     i2c_set_pin(i2c_hal_data[bus]->pin_sda, i2c_hal_data[bus]->pin_scl);
@@ -366,21 +377,27 @@ ATCA_STATUS hal_i2c_receive(ATCAIface iface, uint8_t *rxdata, uint16_t *rxlength
         {
             // Receive count byte
             i2c_receive_byte(rxdata);
-            count = rxdata[0];
-            if ((count < ATCA_RSP_SIZE_MIN) || (count > *rxlength))
+            if (rxdata[0] < ATCA_RSP_SIZE_MIN)
             {
                 i2c_send_stop();
                 status = ATCA_INVALID_SIZE;
                 break;
             }
+            if (rxdata[0] > rxdata_max_size)
+            {
+                i2c_send_stop();
+                status = ATCA_SMALL_BUFFER;
+                break;
+            }
 
             // Receive the remaining bytes
-            i2c_receive_bytes(count - 1, &rxdata[1]);
+            i2c_receive_bytes(rxdata[0] - 1, &rxdata[1]);
         }
     }
-    if (status == ATCA_TX_TIMEOUT)
+
+    if (status == ATCA_SUCCESS)
     {
-        status = ATCA_RX_NO_RESPONSE;
+        *rxlength = rxdata[0];
     }
 
     return status;

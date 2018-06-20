@@ -85,7 +85,7 @@ int atcacert_read_cert(const atcacert_def_t* cert_def,
 
     for (i = 0; i < device_locs_count; i++)
     {
-        uint8_t data[416];
+        static uint8_t data[416];
         if (device_locs[i].zone == DEVZONE_DATA && device_locs[i].is_genkey)
         {
             ret = atcab_get_pubkey(device_locs[i].slot, data);
@@ -149,7 +149,7 @@ int atcacert_write_cert(const atcacert_def_t* cert_def,
     {
         size_t end_block;
         size_t start_block;
-        uint8_t data[416];
+        static uint8_t data[416];
         uint8_t block;
 
         if (device_locs[i].zone == DEVZONE_CONFIG)
@@ -252,9 +252,7 @@ int atcacert_encode_pem_cert(const uint8_t* cert_bytes, size_t cert_bytes_size, 
             status = ATCACERT_E_BAD_PARAMS;
             BREAK(status, "buffer size too small");
         }
-        //// Allocate the buffer to hold the PEM encoded cert
-        //csr_encoded = (char*)malloc(encoded_len);
-        //memset(csr_encoded, 0, encoded_len);
+
 
         // Clear the pem buffer
         memset(pem_cert, 0x00, *pem_cert_size);
@@ -291,80 +289,80 @@ int atcacert_encode_pem_cert(const uint8_t* cert_bytes, size_t cert_bytes_size, 
 int atcacert_create_csr_pem(const atcacert_def_t* csr_def, char* csr, size_t* csr_size)
 {
     ATCA_STATUS status = ATCA_SUCCESS;
-    size_t csr_len = 0;
-    uint8_t* csr_bytes = (uint8_t*)csr;
-    char* csr_encoded = NULL;
-    size_t encoded_len = 0;
-    const char csr_header[] = PEM_CSR_BEGIN_EOL;
-    const char csr_footer[] = PEM_CSR_END_EOL;
-    size_t cpy_loc = 0;
+    size_t csr_max_size;
+    size_t csr_der_size;
+    size_t b64_size;
+    size_t der_offset;
+
+    //const char csr_header[] = PEM_CSR_BEGIN_EOL;
+    //const char csr_footer[] = PEM_CSR_END_EOL;
 
     do
     {
         // Check the pointers
-        if (csr_def == NULL || csr == NULL || csr == NULL || csr_size == NULL)
+        if (csr_def == NULL || csr == NULL || csr_size == NULL)
         {
             status = ATCACERT_E_BAD_PARAMS;
             BREAK(status, "Null input parameter");
         }
+        csr_max_size = *csr_size;
+        *csr_size = 0;
 
-        // Call the create csr function to get the csr bytes
-        csr_len = *csr_size;
-        status = atcacert_create_csr(csr_def, csr_bytes, &csr_len);
+        // Copy the header
+        if (*csr_size + sizeof(PEM_CSR_BEGIN_EOL) - 1 > csr_max_size)
+        {
+            *csr_size = 0;
+            status = ATCACERT_E_BUFFER_TOO_SMALL;
+            BREAK(status, "csr buffer too small");
+        }
+        memcpy(&csr[*csr_size], csr, sizeof(PEM_CSR_BEGIN_EOL) - 1);
+        *csr_size += sizeof(PEM_CSR_BEGIN_EOL) - 1;
+
+        // Create DER CSR
+        csr_der_size = csr_max_size - *csr_size;
+        status = atcacert_create_csr(csr_def, (uint8_t*)&csr[*csr_size], &csr_der_size);
+        if (status != ATCACERT_E_SUCCESS)
+        {
+            *csr_size = 0;
+            BREAK(status, "atcacert_create_csr() failed");
+        }
+
+        // Move DER data so we can encode in the same buffer
+        b64_size = (csr_der_size / 3 + (csr_der_size % 3 != 0)) * 4; // Calculate raw base64 encoding size
+        b64_size += (b64_size / 64) * 2 + 1;                         // Account for \r\n every 64 characters and terminating null
+        if (*csr_size + b64_size > csr_max_size)
+        {
+            *csr_size = 0;
+            status = ATCACERT_E_BUFFER_TOO_SMALL;
+            BREAK(status, "csr buffer too small");
+        }
+        der_offset = b64_size - csr_der_size;
+        memmove(&csr[*csr_size + der_offset], &csr[*csr_size], csr_der_size);
+
+        // Encode DER CSR as base64 data
+        b64_size = csr_max_size - *csr_size;
+        status = atcab_base64encode((uint8_t*)&csr[*csr_size + (b64_size - csr_der_size)], csr_der_size, &csr[*csr_size], &b64_size);
         if (status != ATCA_SUCCESS)
         {
-            BREAK(status, "Failed to create CSR");
+            *csr_size = 0;
+            BREAK(status, "atcab_base64encode() failed");
         }
+        *csr_size += b64_size;
 
-        // Allocate the buffer to hold the fully wrapped CSR
-        encoded_len = *csr_size;
-        csr_encoded = malloc(encoded_len);
-        memset(csr_encoded, 0, encoded_len);
-
-        // Wrap the CSR in the header/footer
-        if ((cpy_loc + sizeof(csr_header)) > *csr_size)
+        // Copy the footer
+        if (*csr_size + sizeof(PEM_CSR_END_EOL) - 1 > csr_max_size)
         {
-            status = ATCACERT_E_BAD_PARAMS;
-            BREAK(status, "CSR buffer too small");
+            *csr_size = 0;
+            status = ATCACERT_E_BUFFER_TOO_SMALL;
+            BREAK(status, "csr buffer too small");
         }
-        // Copy the header into the PEM CSR
-        memcpy(&csr_encoded[cpy_loc], csr_header, sizeof(csr_header));
-        cpy_loc += sizeof(csr_header) - 1; // Subtract the null terminator
-
-        // Base 64 encode the bytes
-        encoded_len -= cpy_loc;
-        status = atcab_base64encode(csr_bytes, csr_len, &csr_encoded[cpy_loc], &encoded_len);
-        if (status != ATCA_SUCCESS)
-        {
-            BREAK(status, "Base 64 encoding failed");
-        }
-        cpy_loc += encoded_len;
-
-        // Copy the footer into the PEM CSR
-        if ((cpy_loc + sizeof(csr_footer)) > *csr_size)
-        {
-            status = ATCACERT_E_BAD_PARAMS;
-            BREAK(status, "CSR buffer too small");
-        }
-        memcpy(&csr_encoded[cpy_loc], csr_footer, sizeof(csr_footer));
-        cpy_loc += sizeof(csr_footer) - 1; // Subtract the null terminator
-
-        // Copy the wrapped CSR
-        memcpy(csr, csr_encoded, cpy_loc);
-        *csr_size = cpy_loc;
-
+        memcpy(&csr[*csr_size], csr, sizeof(PEM_CSR_END_EOL) - 1);
+        *csr_size += sizeof(PEM_CSR_END_EOL) - 1;
     }
     while (false);
 
-    // Deallocate the buffer if needed
-    if (csr_encoded != NULL)
-    {
-        free(csr_encoded);
-    }
-
     return status;
 }
-
 
 int atcacert_create_csr(const atcacert_def_t* csr_def, uint8_t* csr, size_t* csr_size)
 {
@@ -389,7 +387,7 @@ int atcacert_create_csr(const atcacert_def_t* csr_def, uint8_t* csr, size_t* csr
         // Check the csr buffer size
         if (*csr_size < csr_def->cert_template_size)
         {
-            status = ATCACERT_E_BAD_PARAMS;
+            status = ATCACERT_E_BUFFER_TOO_SMALL;
             BREAK(status, "CSR buffer size too small");
         }
         // Copy the CSR template into the CSR that will be returned

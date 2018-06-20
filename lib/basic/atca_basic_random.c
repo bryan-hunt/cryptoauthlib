@@ -66,7 +66,7 @@ ATCA_STATUS atcab_random(uint8_t *rand_out)
             break;
         }
 
-        if (packet.rxsize < packet.data[ATCA_COUNT_IDX] || packet.data[ATCA_COUNT_IDX] != RANDOM_RSP_SIZE)
+        if (packet.data[ATCA_COUNT_IDX] != RANDOM_RSP_SIZE)
         {
             status = ATCA_RX_FAIL;
             break;

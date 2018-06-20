@@ -48,10 +48,10 @@ extern "C" {
 #define PEM_CERT_END        "-----END CERTIFICATE-----"
 #define PEM_CSR_BEGIN       "-----BEGIN CERTIFICATE REQUEST-----"
 #define PEM_CSR_END         "-----END CERTIFICATE REQUEST-----"
-#define PEM_CERT_BEGIN_EOL  PEM_CERT_BEGIN "\n"
-#define PEM_CERT_END_EOL    "\n"PEM_CERT_END "\n"
-#define PEM_CSR_BEGIN_EOL   PEM_CSR_BEGIN "\n"
-#define PEM_CSR_END_EOL     "\n"PEM_CSR_END "\n"
+#define PEM_CERT_BEGIN_EOL  PEM_CERT_BEGIN "\r\n"
+#define PEM_CERT_END_EOL    "\r\n"PEM_CERT_END "\r\n"
+#define PEM_CSR_BEGIN_EOL   PEM_CSR_BEGIN "\r\n"
+#define PEM_CSR_END_EOL     "\r\n"PEM_CSR_END "\r\n"
 
 /** \defgroup atcacert_ Certificate manipulation methods (atcacert_)
  *
@@ -81,7 +81,7 @@ extern "C" {
  * \param[inout] cert_size      As input, the size of the cert buffer in bytes.
  *                              As output, the size of the certificate returned in cert in bytes.
  *
- * \return On successful execution it returns ATCACERT_E_SUCCESS otherwise it returns error code.
+ * \return ATCACERT_E_SUCCESS on success, otherwise an error code.
  */
 int atcacert_read_cert(const atcacert_def_t* cert_def,
                        const uint8_t         ca_public_key[64],
@@ -97,7 +97,7 @@ int atcacert_read_cert(const atcacert_def_t* cert_def,
  * \param[in] cert       Full certificate to be stored.
  * \param[in] cert_size  Size of the full certificate in bytes.
  *
- * \return On successful execution it returns ATCACERT_E_SUCCESS otherwise it returns error code.
+ * \return ATCACERT_E_SUCCESS on success, otherwise an error code.
  */
 int atcacert_write_cert(const atcacert_def_t* cert_def,
                         const uint8_t*        cert,
@@ -122,12 +122,12 @@ int atcacert_create_csr(const atcacert_def_t* csr_def, uint8_t* csr, size_t* csr
  *        with the template found in the CSR definition, then signing it. Return the CSR int der format
  * \param[in]    csr_def   CSR definition describing where to find the dynamic CSR information
  *                         on the device and how to incorporate it into the template.
- * \param[out]   csr_pem   Buffer to received the CSR formatted as PEM.
+ * \param[out]   csr       Buffer to received the CSR formatted as PEM.
  * \param[inout] csr_size  As input, the size of the CSR buffer in bytes.
  *                         As output, the size of the CSR as PEM returned in cert in bytes.
  * \return ATCA_SUCCESS on success, otherwise an error code.
  */
-int atcacert_create_csr_pem(const atcacert_def_t* csr_def, char* csr_pem, size_t* csr_size);
+int atcacert_create_csr_pem(const atcacert_def_t* csr_def, char* csr, size_t* csr_size);
 
 /**
  * \brief Convert a certificate to PEM format
