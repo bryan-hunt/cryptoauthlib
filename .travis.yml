@@ -5,18 +5,26 @@ matrix:
     - sudo: required
       services:
         - docker
-      env: PIP=pip
+      env:
+        - PIP=pip
+        - PYTHON=python
     - os: osx
       language: generic
-      env: PIP=pip2
+      env:
+        - PIP=pip2
+        - PYTHON=python2
 
 script:
   - cd python
   - git describe --tags >VERSION
+  - $PIP install wheel
+  - $PYTHON setup.py sdist --dist-dir wheelhouse
   - $PIP install cibuildwheel
+  - export CIBW_SKIP='cp34-*'
+  - export CIBW_BEFORE_BUILD_LINUX='yum install cmake -y'
   - cibuildwheel --output-dir wheelhouse
   - |
     if [[ $TRAVIS_TAG ]]; then
-      python -m pip install twine
-      python -m twine upload wheelhouse/*.whl --skip-existing --repository-url https://test.pypi.org/legacy/
+      $PIP install twine
+      $PYTHON -m twine upload wheelhouse/* --skip-existing --repository-url https://test.pypi.org/legacy/
     fi
