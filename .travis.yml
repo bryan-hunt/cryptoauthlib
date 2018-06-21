@@ -8,6 +8,7 @@ matrix:
 #      env:
 #        - PIP=pip
 #        - PYTHON=python
+#        - CIBW_BEFORE_BUILD_LINUX='yum install cmake -y'
     - os: osx
       language: generic
       compiler: gcc
@@ -18,11 +19,12 @@ matrix:
 script:
   - cd python
   - git describe --tags >VERSION
+  - cp -r ../lib .
+  - cp -r ../third_party .
   - $PIP install wheel
   - $PYTHON setup.py sdist --dist-dir wheelhouse
   - $PIP install cibuildwheel
   - export CIBW_SKIP='cp34-*'
-  - export CIBW_BEFORE_BUILD_LINUX='yum install cmake -y'
   - export CIBW_BUILD_VERBOSITY=3
   - cibuildwheel --output-dir wheelhouse
   - |
