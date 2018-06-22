@@ -62,9 +62,6 @@ try:
 except:
     _EXTENSIONS = [Extension('cryptoauthlib', sources=[])]
 
-def prompt_sudo():
-    return (0 == subprocess.check_call("sudo -v -p '[sudo] password for %%u:'", shell=True))
-
 
 def copy_udev_rules(target):
     if _sdist_build:
@@ -75,19 +72,16 @@ def copy_udev_rules(target):
     if not os.path.exists(target):
         raise FileNotFoundError
 
-    try:
+    if not os.path.exists(target + os.path.sep + os.path.basename(rules)):
         shutil.copy(rules, target)
-    except PermissionError as e:
-        if prompt_sudo():
-            shutil.copy(rules, target)
-        else:
-            raise e
 
             
 def install_udev_rules():
     if sys.platform.startswith('linux'):
         try:
             copy_udev_rules('/etc/udev/rules.d')
+        except PermissionError:
+            print('Unable to write udev rules. Rerun install as sudo or install rules manually')
         except:
             print('Unable to install udev rules. See readme to manually install')
     
@@ -110,8 +104,12 @@ def load_readme():
 
 class CryptoAuthCommandBuildExt(build_ext):
     def build_extension(self, ext):
+        # Suppress cmake output
+        devnull = open(os.devnull, 'r+b')
+
+        # Check if CMAKE is installed
         try:
-            subprocess.check_call('cmake --version', shell=False)
+            subprocess.check_call(['cmake', '--version'], stdin=devnull, stdout=devnull, stderr=devnull, shell=False)
         except OSError as e:
             print("CMAKE must be installed on the system for this module to build the required extension e.g. 'apt-get install cmake' or 'yum install cmake'")
             raise e
@@ -142,17 +140,15 @@ class CryptoAuthCommandBuildExt(build_ext):
 
         if not os.path.exists(self.build_temp):
             os.makedirs(self.build_temp)
-            
-        # Suppress cmake output
-        devnull = open(os.devnull, 'r+b')
 
         # Configure the library
-        subprocess.check_call(' '.join(['cmake', cmakelist_path] + cmake_args), cwd=os.path.abspath(self.build_temp),
+        subprocess.check_call(['cmake', cmakelist_path] + cmake_args, cwd=os.path.abspath(self.build_temp),
             stdin=devnull, stdout=devnull, stderr=devnull, shell=False)
 
         # Build the library
-        subprocess.check_call(' '.join(['cmake', '--build', '.'] + build_args), cwd=os.path.abspath(self.build_temp),
+        subprocess.check_call(['cmake', '--build', '.'] + build_args, cwd=os.path.abspath(self.build_temp),
             stdin=devnull, stdout=devnull, stderr=devnull, shell=False)
+
 
 class CryptoAuthCommandInstall(install):
     def run(self):

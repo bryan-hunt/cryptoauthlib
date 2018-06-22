@@ -1,12 +1,14 @@
 from cryptoauthlib import *
+from cryptoauthlib.iface import *
 import binascii
 
 ATCA_SUCCESS = 0x00
 
 def get_info():
+    load_cryptoauthlib()
 
     # Initialize the library
-    assert atcab_init() == ATCA_SUCCESS
+    assert atcab_init(cfg_ateccx08a_kithid_default()) == ATCA_SUCCESS
 
     # Request the Revision Number
     info = bytearray(4)
