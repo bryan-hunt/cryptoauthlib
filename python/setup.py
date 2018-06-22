@@ -1,4 +1,5 @@
 from setuptools import setup, Distribution
+from setuptools.command.install import install
 from setuptools.command.build_ext import build_ext
 from setuptools.extension import Extension
 
@@ -6,6 +7,8 @@ import sys
 import subprocess
 import os
 import glob
+import shutil
+from ctypes import cdll
 
 _NAME = 'cryptoauthlib'
 _DESCRIPTION = 'Python Wrapper Library for Microchip Security Products'
@@ -52,6 +55,43 @@ if os.path.exists('lib') and os.path.exists('third_party'):
 else:
     _sdist_build = False
 
+# See if the library is already installed
+try:
+    cdll.LoadLibrary('libcryptoauth.so')
+    _EXTENSIONS = None
+except:
+    _EXTENSIONS = [Extension('cryptoauthlib', sources=[])]
+
+def prompt_sudo():
+    return (0 == subprocess.check_call("sudo -v -p '[sudo] password for %%u:'", shell=True))
+
+
+def copy_udev_rules(target):
+    if _sdist_build:
+        rules = 'lib/hal/90-cryptohid.rules'
+    else:
+        rules = '../lib/hal/90-cryptohid.rules'
+
+    if not os.path.exists(target):
+        raise FileNotFoundError
+
+    try:
+        shutil.copy(rules, target)
+    except PermissionError as e:
+        if prompt_sudo():
+            shutil.copy(rules, target)
+        else:
+            raise e
+
+            
+def install_udev_rules():
+    if sys.platform.startswith('linux'):
+        try:
+            copy_udev_rules('/etc/udev/rules.d')
+        except:
+            print('Unable to install udev rules. See readme to manually install')
+    
+
 def load_readme():
     with open('README.md', 'r') as f:
         read_me = f.read()
@@ -70,13 +110,19 @@ def load_readme():
 
 class CryptoAuthCommandBuildExt(build_ext):
     def build_extension(self, ext):
+        try:
+            subprocess.check_call('cmake --version', shell=False)
+        except OSError as e:
+            print("CMAKE must be installed on the system for this module to build the required extension e.g. 'apt-get install cmake' or 'yum install cmake'")
+            raise e
+    
         extdir = os.path.abspath(
             os.path.dirname(self.get_ext_fullpath(ext.name)) + os.path.sep + _NAME)
         setupdir = os.path.dirname(os.path.abspath(__file__))
 
         cmakelist_path = os.path.abspath(setupdir + os.path.sep + 'lib' if _sdist_build else '../lib')
 
-        if not sys.platform.startswith('linux'):   
+        if not sys.platform.startswith('linux'):
             cfg = 'Debug' if self.debug else 'Release'
             build_args = ['--config', cfg]
         else:
@@ -101,17 +147,22 @@ class CryptoAuthCommandBuildExt(build_ext):
         devnull = open(os.devnull, 'r+b')
 
         # Configure the library
-        subprocess.check_call(' '.join(['cmake', cmakelist_path] + cmake_args), cwd=os.path.abspath(self.build_temp), shell=True)
-#            stdin=devnull, stdout=devnull, stderr=devnull, shell=False)
+        subprocess.check_call(' '.join(['cmake', cmakelist_path] + cmake_args), cwd=os.path.abspath(self.build_temp),
+            stdin=devnull, stdout=devnull, stderr=devnull, shell=False)
 
         # Build the library
-        subprocess.check_call(' '.join(['cmake', '--build', '.'] + build_args), cwd=os.path.abspath(self.build_temp), shell=True)
-#            stdin=devnull, stdout=devnull, stderr=devnull, shell=False)
+        subprocess.check_call(' '.join(['cmake', '--build', '.'] + build_args), cwd=os.path.abspath(self.build_temp),
+            stdin=devnull, stdout=devnull, stderr=devnull, shell=False)
+
+class CryptoAuthCommandInstall(install):
+    def run(self):
+        install.run(self)
+        install_udev_rules()
 
 
 class BinaryDistribution(Distribution):
     def has_ext_modules(self):
-        return True
+        return (_EXTENSIONS is not None)
 
 
 if __name__ == '__main__':
@@ -134,11 +185,12 @@ if __name__ == '__main__':
         include_package_data=True,
         distclass=BinaryDistribution,
         cmdclass={
-           'build_ext': CryptoAuthCommandBuildExt
+           'build_ext': CryptoAuthCommandBuildExt,
+           'install': CryptoAuthCommandInstall
         },
         setup_requires=['setuptools>=38.6.0', 'wheel'],
         install_requires=_INSTALL_REQUIRES,
-        ext_modules=[Extension('cryptoauthlib', sources=[])],
+        ext_modules=_EXTENSIONS,
         python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, <4',
         zip_safe=False
     )
