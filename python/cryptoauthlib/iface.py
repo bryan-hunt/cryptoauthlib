@@ -1,5 +1,12 @@
+"""
+Interface Configuration
+"""
+
 from ctypes import Structure, Union, c_uint16, c_int, c_uint8, c_uint32, c_void_p
 from .atcab import get_cryptoauthlib
+
+# Because this module directly mirrors the C api the following is an exception to the python coding standard
+# pylint: disable-msg=too-few-public-methods
 
 # The following must match atca_iface.h exactly
 
@@ -53,7 +60,7 @@ class _ATCAIfaceParams(Union):
                 ('atcahid', _ATCAHID),
                 ('atcacustom', _ATCACUSTOM)]
 
-                
+
 class ATCAIfaceCfg(Structure):
     """Interface configuration structure used by atcab_init()"""
     _fields_ = [('iface_type', c_int),
@@ -62,7 +69,7 @@ class ATCAIfaceCfg(Structure):
                 ('wake_delay', c_uint16),
                 ('rx_retries', c_int),
                 ('cfg_data', c_void_p)]
-    
+
 
 def cfg_ateccx08a_i2c_default():
     """Default configuration for an ECCx08A device on the first logical I2C bus"""
@@ -91,7 +98,7 @@ def cfg_atsha204a_swi_default():
 
 def cfg_atsha204a_kithid_default():
     """Default configuration for Kit protocol over a HID interface for SHA204"""
-    return ATCAIfaceCfg.in_dll(get_cryptoauthlib(), 'cfg_atsha204a_kithid_default')  
+    return ATCAIfaceCfg.in_dll(get_cryptoauthlib(), 'cfg_atsha204a_kithid_default')
 
 
 # Make module import * safe - keep at the end of the file

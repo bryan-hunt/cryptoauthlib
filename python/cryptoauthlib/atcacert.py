@@ -7,6 +7,8 @@ from .atcaenum import AtcaEnum
 
 import binascii
 
+# Because this module directly mirrors the C api the following is an exception to the python coding standard
+# pylint: disable-msg=invalid-name, too-few-public-methods
 
 class atcacert_cert_type_t(AtcaEnum):
     """Types of certificates"""

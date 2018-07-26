@@ -2,11 +2,11 @@
 Dynamic link library loading under ctypes and HAL initilization/release functions
 """
 import os.path
-from ctypes import c_uint8, c_uint32, cdll, byref, create_string_buffer, Structure, c_char, c_uint16, Union
+from ctypes import c_uint8, c_uint32, cdll, byref, create_string_buffer, Structure, c_char, c_uint16
 from .status import Status
 
 # Because this module directly mirrors the C api the following is an exception to the python coding standard
-# pylint: disable-msg=too-many-arguments
+# pylint: disable-msg=too-many-arguments, invalid-name, too-few-public-methods
 
 _CRYPTO_LIB = None
 
@@ -49,7 +49,7 @@ def load_cryptoauthlib(lib=None):
         except:
             raise LibraryLoadError("Unable to load cryptoauthlib")
 
-            
+
 def get_cryptoauthlib():
     """
     This is a helper function for the other python files in this module to use the loaded library
@@ -2454,5 +2454,5 @@ def atcab_write_config_counter(counter_id, counter_value):
 
 
 # Make module import * safe - keep at the end of the file
-__all__ = ['load_cryptoauthlib', 'get_cryptoauthlib', 'atca_aes_cbc_ctx', 'atca_aes_cmac_ctx'] 
-            + [x for x in dir() if x.startswith(__name__.split('.')[-1])]
+__all__ = ['load_cryptoauthlib', 'get_cryptoauthlib', 'atca_aes_cbc_ctx', 'atca_aes_cmac_ctx']
+__all__ += [x for x in dir() if x.startswith(__name__.split('.')[-1])]
