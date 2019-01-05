@@ -134,18 +134,17 @@ class CryptoAuthCommandBuildExt(build_ext):
         if sys.platform.startswith('linux'):
             cmake_args += ['-DATCA_HAL_I2C=ON']
 
-        print(setupdir)
         cmake_args += ['-DATCACERT_DEF_SRC={}atca_utils_sizes.c'.format(setupdir.replace('\\','/') if _sdist_build else '../test/')]
 
         if not os.path.exists(self.build_temp):
             os.makedirs(self.build_temp)
 
         # Configure the library
-        subprocess.check_call(['cmake', cmakelist_path] + cmake_args, cwd=os.path.abspath(self.build_temp), shell=True)
+        subprocess.check_call(['cmake', cmakelist_path] + cmake_args, cwd=os.path.abspath(self.build_temp))
 #            stdin=devnull, stdout=devnull, stderr=devnull, shell=False)
 
         # Build the library
-        subprocess.check_call(['cmake', '--build', '.'] + build_args, cwd=os.path.abspath(self.build_temp), shell=True)
+        subprocess.check_call(['cmake', '--build', '.'] + build_args, cwd=os.path.abspath(self.build_temp))
 #            stdin=devnull, stdout=devnull, stderr=devnull, shell=False)
 
 
