@@ -24,7 +24,7 @@ script:
   - cp ../test/atca_utils_sizes.c .
   - $PIP install wheel
   - $PYTHON setup.py sdist --dist-dir wheelhouse
-  - $PIP install cibuildwheel
+  - sudo $PIP install cibuildwheel
   - export CIBW_SKIP='cp34-*'
   - export CIBW_BUILD_VERBOSITY=3
   - cibuildwheel --output-dir wheelhouse
