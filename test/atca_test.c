@@ -26,19 +26,24 @@
  */
 #include "atca_test.h"
 #include "atca_execution.h"
+#include "app/tng/tng_atca.h"
+
+extern tng_type_t g_tng_test_type;
 
 // gCfg must point to one of the cfg_ structures for any unit test to work.  this allows
 // the command console to switch device types at runtime.
 ATCAIfaceCfg g_iface_config = {
-    .iface_type        = ATCA_UNKNOWN_IFACE,
-    .devtype           = ATCA_DEV_UNKNOWN,
-    .atcai2c           = {
-        .slave_address = 0xC0,
-        .bus           = 2,
-        .baud          = 400000,
+    .iface_type            = ATCA_UNKNOWN_IFACE,
+    .devtype               = ATCA_DEV_UNKNOWN,
+    {
+        .atcai2c           = {
+            .slave_address = 0xC0,
+            .bus           = 2,
+            .baud          = 400000,
+        },
     },
-    .wake_delay        = 1500,
-    .rx_retries        = 20
+    .wake_delay            = 1500,
+    .rx_retries            = 20
 };
 
 ATCAIfaceCfg *gCfg = &g_iface_config;
@@ -205,6 +210,16 @@ t_test_case_info* helper_tests[] =
     (t_test_case_info*)NULL, /* Array Termination element*/
 };
 
+t_test_case_info* tng_tests[] =
+{
+    tng_atca_unit_test_info,
+#ifndef DO_NOT_TEST_CERT
+    tng_atcacert_client_unit_test_info,
+#endif
+    (t_test_case_info*)NULL, /* Array Termination element*/
+};
+
+
 void RunAllTests(t_test_case_info** tests_list)
 {
     t_test_case_info* sp_current_test;
@@ -258,6 +273,17 @@ void RunAllHelperTests(void)
     RunAllTests(helper_tests);
 }
 
+void RunTNGTLSTests(void)
+{
+    g_tng_test_type = TNGTYPE_TLS;
+    RunAllTests(tng_tests);
+}
+
+void RunTNGLORATests(void)
+{
+    g_tng_test_type = TNGTYPE_LORA;
+    RunAllTests(tng_tests);
+}
 
 
 static bool atcau_is_locked(uint8_t zone)

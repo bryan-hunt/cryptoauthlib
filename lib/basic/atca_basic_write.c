@@ -169,11 +169,19 @@ ATCA_STATUS atcab_write_zone(uint8_t zone, uint16_t slot, uint8_t block, uint8_t
  *  \param[in] data        32 bytes of clear text data to be written to the slot
  *  \param[in] enc_key     WriteKey to encrypt with for writing
  *  \param[in] enc_key_id  The KeyID of the WriteKey
+ *  \param[in]  num_in       20 byte host nonce to inject into Nonce calculation
  *
  *  returns ATCA_SUCCESS on success, otherwise an error code.
  */
+#if defined(ATCA_USE_CONSTANT_HOST_NONCE)
 ATCA_STATUS atcab_write_enc(uint16_t key_id, uint8_t block, const uint8_t *data, const uint8_t* enc_key, const uint16_t enc_key_id)
 {
+    uint8_t num_in[NONCE_NUMIN_SIZE] = { 0 };
+
+#else
+ATCA_STATUS atcab_write_enc(uint16_t key_id, uint8_t block, const uint8_t *data, const uint8_t* enc_key, const uint16_t enc_key_id, const uint8_t num_in[NONCE_NUMIN_SIZE])
+{
+#endif
     ATCA_STATUS status = ATCA_GEN_FAIL;
     uint8_t zone = ATCA_ZONE_DATA | ATCA_ZONE_READWRITE_32;
     atca_nonce_in_out_t nonce_params;
@@ -181,7 +189,6 @@ ATCA_STATUS atcab_write_enc(uint16_t key_id, uint8_t block, const uint8_t *data,
     atca_write_mac_in_out_t write_mac_param;
     atca_temp_key_t temp_key;
     uint8_t serial_num[32];
-    uint8_t num_in[NONCE_NUMIN_SIZE] = { 0 };
     uint8_t rand_out[RANDOM_NUM_SIZE] = { 0 };
     uint8_t cipher_text[ATCA_KEY_SIZE] = { 0 };
     uint8_t mac[WRITE_MAC_SIZE] = { 0 };
@@ -211,7 +218,7 @@ ATCA_STATUS atcab_write_enc(uint16_t key_id, uint8_t block, const uint8_t *data,
         memset(&nonce_params, 0, sizeof(nonce_params));
         nonce_params.mode = NONCE_MODE_SEED_UPDATE;
         nonce_params.zero = 0;
-        nonce_params.num_in = (uint8_t*)&num_in;
+        nonce_params.num_in = (uint8_t*)&num_in[0];
         nonce_params.rand_out = (uint8_t*)&rand_out;
         nonce_params.temp_key = &temp_key;
 
@@ -342,10 +349,8 @@ ATCA_STATUS atcab_write_config_zone(const uint8_t* config_data)
     return status;
 }
 
-
-
-/** \brief Executes the Write command, which writes a public key to a data slot
- *          in the device format.
+/** \brief Uses the write command to write a public key to a slot in the
+ *         proper format.
  *
  *  \param[in] slot        Slot number to write. Only slots 8 to 15 are large
  *                         enough to store a public key.
@@ -358,32 +363,33 @@ ATCA_STATUS atcab_write_config_zone(const uint8_t* config_data)
 ATCA_STATUS atcab_write_pubkey(uint16_t slot, const uint8_t *public_key)
 {
     ATCA_STATUS status = ATCA_SUCCESS;
-    uint8_t public_key_formatted[72];
+    uint8_t public_key_formatted[ATCA_BLOCK_SIZE * 3];
+    int block;
 
-    do
+    // Check the pointers
+    if (public_key == NULL)
     {
-        // Check the pointers
-        if (public_key == NULL)
-        {
-            return ATCA_BAD_PARAM;
-        }
+        return ATCA_BAD_PARAM;
+    }
 
-        // The 64 byte P256 public key gets written to a 72 byte slot in the following pattern
-        // | Block 1                     | Block 2                                      | Block 3       |
-        // | Pad: 4 Bytes | PubKey[0:27] | PubKey[28:31] | Pad: 4 Bytes | PubKey[32:55] | PubKey[56:63] |
+    // The 64 byte P256 public key gets written to a 72 byte slot in the following pattern
+    // | Block 1                     | Block 2                                      | Block 3       |
+    // | Pad: 4 Bytes | PubKey[0:27] | PubKey[28:31] | Pad: 4 Bytes | PubKey[32:55] | PubKey[56:63] |
 
-        memset(public_key_formatted, 0, sizeof(public_key_formatted));
-        memcpy(&public_key_formatted[4], &public_key[0], 32);   // Move X to padded position
-        memcpy(&public_key_formatted[40], &public_key[32], 32); // Move Y to padded position
+    memset(public_key_formatted, 0, sizeof(public_key_formatted));
+    memcpy(&public_key_formatted[4], &public_key[0], 32);   // Move X to padded position
+    memcpy(&public_key_formatted[40], &public_key[32], 32); // Move Y to padded position
 
-        status = atcab_write_bytes_zone(ATCA_ZONE_DATA, slot, 0, public_key_formatted, sizeof(public_key_formatted));
+    // Using this instead of atcab_write_zone_bytes, as that function doesn't work when
+    // the data zone is unlocked
+    for (block = 0; block < 3; block++)
+    {
+        status = atcab_write_zone(ATCA_ZONE_DATA, slot, block, 0, &public_key_formatted[ATCA_BLOCK_SIZE * block], ATCA_BLOCK_SIZE);
         if (status != ATCA_SUCCESS)
         {
             break;
         }
-
     }
-    while (0);
 
     return status;
 }

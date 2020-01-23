@@ -79,6 +79,11 @@ static ATCA_STATUS set_chip_mode(uint8_t i2c_user_extra_add, uint8_t ttl_enable,
 static void set_clock_divider_m0(void);
 static void set_clock_divider_m1(void);
 static void set_clock_divider_m2(void);
+static void tngtls_tests(void);
+static void tnglora_tests(void);
+#if defined(_WIN32) || defined(__linux__) || defined(__APPLE__)
+static void call_exit(int code);
+#endif
 
 static const char* argv[] = { "manual", "-v" };
 // *INDENT-OFF*  - Preserve formatting
@@ -98,6 +103,8 @@ static t_menu_info mas_menu_info[] =
     { "lockcfg",  "Lock the Config Zone",                           lock_config                          },
     { "lockdata", "Lock Data and OTP Zones",                        lock_data                            },
     { "all",      "Run all unit tests, locking as needed.",         run_all_tests                        },
+    { "tngtls",   "Run unit tests on TNG TLS type part.",           tngtls_tests                          },
+    { "tnglora",  "Run unit tests on TNG LORA type part.",          tnglora_tests                          },
     #ifndef DO_NOT_TEST_BASIC_UNIT
     { "basic",    "Run Basic Test on Selected Device",              run_basic_tests                      },
     { "unit",     "Run Unit Test on Selected Device",               run_unit_tests                       },
@@ -114,6 +121,9 @@ static t_menu_info mas_menu_info[] =
     #ifndef DO_NOT_TEST_SW_CRYPTO
     { "crypto",   "Run Unit Tests for Software Crypto Functions",   (fp_menu_handler)atca_crypto_sw_tests},
     #endif
+    #if defined(_WIN32) || defined(__linux__) || defined(__APPLE__)
+    { "exit",     "Exit the test application",                      call_exit                            },
+    #endif
     { NULL,       NULL,                                             NULL                                 },
 };
 // *INDENT-ON*
@@ -122,11 +132,19 @@ static t_menu_info mas_menu_info[] =
 #include <stdio.h>
 #include <stdlib.h>
 #include "cmd-processor.h"
+
+static int exit_code;
+
+static void call_exit(int code)
+{
+    exit_code = code;
+}
+
 int main(int argc, char* argv[])
 {
     char buffer[1024];
 
-    while (true)
+    while (!exit_code)
     {
         printf("$ ");
         if (fgets(buffer, sizeof(buffer), stdin))
@@ -135,7 +153,7 @@ int main(int argc, char* argv[])
         }
     }
 
-    return 0;
+    return exit_code;
 }
 #else
 int processCmd(void)
@@ -1026,4 +1044,36 @@ static void set_clock_divider_m2(void)
     {
         printf("Set device to clock divider M2 (0x%02X) and watchdog to 13s nominal.\r\n", ATCA_CHIPMODE_CLOCK_DIV_M2 >> 3);
     }
+}
+
+static void tngtls_tests(void)
+{
+    ATCA_STATUS status;
+
+    status = atcab_init(gCfg);
+    if (status != ATCA_SUCCESS)
+    {
+        printf("atcab_init() failed with ret=0x%08X\r\n", status);
+        return;
+    }
+
+    run_test(RunTNGTLSTests);
+
+    atcab_release();
+}
+
+static void tnglora_tests(void)
+{
+    ATCA_STATUS status;
+
+    status = atcab_init(gCfg);
+    if (status != ATCA_SUCCESS)
+    {
+        printf("atcab_init() failed with ret=0x%08X\r\n", status);
+        return;
+    }
+
+    run_test(RunTNGLORATests);
+
+    atcab_release();
 }

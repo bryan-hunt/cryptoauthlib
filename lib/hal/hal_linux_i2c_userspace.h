@@ -42,8 +42,6 @@ typedef struct atcaI2Cmaster
 {
     char i2c_file[16];
     int  ref_ct;
-    // for conveniences during interface release phase
-    int bus_index;
 } ATCAI2CMaster_t;
 
 /** @} */
