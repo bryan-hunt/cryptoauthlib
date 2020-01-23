@@ -24,10 +24,13 @@ install:
 
 before_build:
     - cd python
-    - cmd: "git describe --tags >VERSION"
+    - cmd: "git describe --exclude v* --tags --abbrev=0 >VERSION"
 
 build_script:
-    - cmd: "%PYTHON%\\python.exe setup.py bdist_wheel"
+  - ps: >-
+      if ($env:APPVEYOR_REPO_TAG_NAME -notlike 'v*') {
+        ${env:PYTHON}\python.exe setup.py bdist_wheel
+      }
 
 artifacts:
     - path: python\dist\*.whl
@@ -37,4 +40,4 @@ artifacts:
 #  See Appveyor's documentation for more details. Or you can simply
 #  access your wheels from the Appveyor "artifacts" tab for your build.
 deploy_script:
-    - ps: if ($env:APPVEYOR_REPO_TAG -eq $TRUE) { & ${env:PYTHON}\python.exe -m twine upload "dist\*.whl" --skip-existing }
+    - ps: if ($env:APPVEYOR_REPO_TAG -eq $TRUE -and $env:APPVEYOR_REPO_TAG_NAME -notlike "v*") { & ${env:PYTHON}\python.exe -m twine upload "dist\*.whl" --skip-existing }
