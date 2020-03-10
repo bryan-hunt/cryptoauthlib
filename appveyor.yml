@@ -7,7 +7,6 @@ environment:
   matrix:
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       APPVEYOR_JOB_NAME: "python37-x64-vs2017"
-    - PYTHON: "C:\\Python37-x64"
       TAG_SCENARIO: true
 
 stack: python 3.7
@@ -16,14 +15,14 @@ init:
     - cmd: set PATH=C:\Python37;C:\Python37\Scripts;%PATH%
 
 install:
-    - cmd: "%PYTHON%\\python.exe -m pip install --upgrade cibuildwheel"
+    - python -m pip install --upgrade cibuildwheel
 
 before_build:
     - cd python
     - cmd: "git describe --exclude v* --tags --abbrev=0 >VERSION"
 
 build_script:
-    - cmd: "%PYTHON%\\python.exe -m cibuildwheel --output-dir wheelhouse"
+    - python -m cibuildwheel --output-dir wheelhouse
 
 artifacts:
     - path: python\dist\*.whl
