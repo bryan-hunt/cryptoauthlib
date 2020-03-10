@@ -5,40 +5,29 @@ environment:
     secure: nGYP/oqo/DSfCQduEhhKGg==
 
   matrix:
-    - PYTHON: "C:\\Python27"
-      TAG_SCENARIO: true
-    - PYTHON: "C:\\Python27-x64"
-      TAG_SCENARIO: true
-    - PYTHON: "C:\\Python35"
-      TAG_SCENARIO: true
-    - PYTHON: "C:\\Python35-x64"
-      TAG_SCENARIO: true
-    - PYTHON: "C:\\Python36"
-      TAG_SCENARIO: true
-    - PYTHON: "C:\\Python36-x64"
-      TAG_SCENARIO: true
-    - PYTHON: "C:\\Python37"
-      TAG_SCENARIO: true
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+      APPVEYOR_JOB_NAME: "python37-x64-vs2017"
     - PYTHON: "C:\\Python37-x64"
       TAG_SCENARIO: true
 
+stack: python 3.7
+
+init:
+    - cmd: set PATH=C:\Python37;C:\Python37\Scripts;%PATH%
+
 install:
-    - cmd: "%PYTHON%\\python.exe -m pip install --upgrade pip"
-    - cmd: "%PYTHON%\\python.exe -m pip install --upgrade setuptools"
-    - cmd: "%PYTHON%\\python.exe -m pip install --upgrade wheel"
-    - cmd: "%PYTHON%\\python.exe -m pip install --upgrade pytest"
-    - cmd: "%PYTHON%\\python.exe -m pip install --upgrade enum34"
-    - cmd: "%PYTHON%\\python.exe -m pip install --upgrade twine"
+    - cmd: "%PYTHON%\\python.exe -m pip install --upgrade cibuildwheel"
 
 before_build:
     - cd python
     - cmd: "git describe --exclude v* --tags --abbrev=0 >VERSION"
 
 build_script:
-    - cmd: "%PYTHON%\\python.exe setup.py bdist_wheel"
+    - cmd: "%PYTHON%\\python.exe -m cibuildwheel --output-dir wheelhouse"
 
 artifacts:
     - path: python\dist\*.whl
+      name: Wheels
 
 #on_success:
 #  You can use this step to upload your artifacts to a public website.
