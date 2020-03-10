@@ -32,7 +32,7 @@ build_script:
     - python -m cibuildwheel --output-dir wheelhouse
 
 artifacts:
-    - path: python\dist\*.whl
+    - path: "wheelhouse\\*.whl"
       name: Wheels
 
 #on_success:
