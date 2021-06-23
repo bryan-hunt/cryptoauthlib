@@ -29,6 +29,9 @@ from ctypes.util import find_library
 from .exceptions import LibraryLoadError
 from .atcaenum import AtcaEnum
 
+# Defines the minimum API version
+_MIN_API_VERSION = "20210514"
+
 # Maps common name to the specific name used internally
 ATCA_NAMES = {'i2c': 'i2c', 'hid': 'kithid', 'sha': 'sha204', 'ecc': 'eccx08'}
 
@@ -85,6 +88,28 @@ def _force_local_library():
         return os.path.join(curr_path, "libcryptoauth.so")
 
 
+def _load_and_check_library(lib_path):
+    """
+    Check the library for api compatibility with the python module to make
+    sure that it will fuction
+    """
+    if lib_path is None:
+        raise LibraryLoadError('Unable to find cryptoauthlib. You may need to reinstall')
+
+    # Try to load the provided library
+    lib = cdll.LoadLibrary(lib_path)
+
+    # Check the api version
+    api_version = create_string_buffer(10)
+    lib.atcab_version(api_version)
+    api_version = api_version.raw.decode('ascii').rstrip('\x00')
+
+    if int(api_version) < int(_MIN_API_VERSION):
+        raise LibraryLoadError('Library version is incompatible. You may need to reinstall')
+
+    return lib
+
+
 def load_cryptoauthlib(lib=None):
     """
     Load CryptoAauthLib into Python environment
@@ -95,13 +120,11 @@ def load_cryptoauthlib(lib=None):
         _CRYPTO_LIB = lib
     else:
         try:
-            _CRYPTO_LIB = cdll.LoadLibrary(find_library('cryptoauth'))
+            # Look for a system library in the existing environment 
+            _CRYPTO_LIB = _load_and_check_library(find_library('cryptoauth'))
         except:
-            try:
-                _CRYPTO_LIB = cdll.LoadLibrary(_force_local_library())
-            except:
-                raise LibraryLoadError('Unable to find cryptoauthlib. You may need to reinstall')
-
+            # Look for a local copy of the library
+            _CRYPTO_LIB = _load_and_check_library(_force_local_library())
 
 
 def get_cryptoauthlib():
